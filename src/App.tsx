@@ -296,6 +296,26 @@ export default function App() {
         </Canvas>
       </div>
 
+      {/* Logo + patient — top left */}
+      <div style={{
+        position: 'absolute', top: 24, left: 24,
+        zIndex: 10,
+        pointerEvents: 'none',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 10,
+      }}>
+        <img src="/assets/logo-white.png" alt="Logo" style={{ height: 72, opacity: 0.85 }} />
+        <div style={{ paddingLeft: 2 }}>
+          <div style={{ fontSize: 9, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#444', marginBottom: 3 }}>
+            Paciente
+          </div>
+          <div style={{ fontSize: 14, fontWeight: 600, color: '#ccc', letterSpacing: '0.02em' }}>
+            John Wick
+          </div>
+        </div>
+      </div>
+
       {/* Step panel — right side */}
       <div style={{
         position: 'absolute', right: 0, top: 0, bottom: 0,
@@ -334,56 +354,56 @@ export default function App() {
         left: '50%',
         transform: 'translateX(-50%)',
         display: 'flex',
+        flexDirection: 'column',
         alignItems: 'center',
-        gap: 10,
+        gap: 8,
         zIndex: 20,
         pointerEvents: 'none',
       }}>
-        {/* Visibility toggle: Maxilar */}
-        <button
-          onClick={() => setShowMax(v => !v)}
-          onMouseEnter={() => setHoverMax(true)}
-          onMouseLeave={() => setHoverMax(false)}
-          style={{
-            ...btnBase,
-            color: showMax
-              ? (hoverMax ? '#ccc' : '#777')
-              : (hoverMax ? '#555' : '#333'),
-            background: hoverMax ? 'rgba(30,30,30,0.9)' : btnBase.background,
-            borderColor: showMax
-              ? (hoverMax ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.12)')
-              : 'rgba(255,255,255,0.06)',
-          }}
-        >
-          {showMax
-            ? <Eye size={14} strokeWidth={1.5} />
-            : <EyeOff size={14} strokeWidth={1.5} />}
-          Maxilar
-        </button>
+        {/* Progress track */}
+        <div style={{
+          width: 120,
+          height: 2,
+          borderRadius: 1,
+          background: 'rgba(255,255,255,0.08)',
+          overflow: 'hidden',
+        }}>
+          <div style={{
+            height: '100%',
+            width: `${progress * 100}%`,
+            background: 'rgba(255,255,255,0.35)',
+            borderRadius: 1,
+            transition: 'width 0.05s linear',
+          }} />
+        </div>
 
-        {/* Progress bar + Play */}
+        {/* Button row */}
         <div style={{
           display: 'flex',
-          flexDirection: 'column',
           alignItems: 'center',
-          gap: 8,
+          gap: 10,
         }}>
-          {/* Progress track */}
-          <div style={{
-            width: 120,
-            height: 2,
-            borderRadius: 1,
-            background: 'rgba(255,255,255,0.08)',
-            overflow: 'hidden',
-          }}>
-            <div style={{
-              height: '100%',
-              width: `${progress * 100}%`,
-              background: 'rgba(255,255,255,0.35)',
-              borderRadius: 1,
-              transition: 'width 0.05s linear',
-            }} />
-          </div>
+          {/* Visibility toggle: Maxilar */}
+          <button
+            onClick={() => setShowMax(v => !v)}
+            onMouseEnter={() => setHoverMax(true)}
+            onMouseLeave={() => setHoverMax(false)}
+            style={{
+              ...btnBase,
+              color: showMax
+                ? (hoverMax ? '#ccc' : '#777')
+                : (hoverMax ? '#555' : '#333'),
+              background: hoverMax ? 'rgba(30,30,30,0.9)' : btnBase.background,
+              borderColor: showMax
+                ? (hoverMax ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.12)')
+                : 'rgba(255,255,255,0.06)',
+            }}
+          >
+            {showMax
+              ? <Eye size={14} strokeWidth={1.5} />
+              : <EyeOff size={14} strokeWidth={1.5} />}
+            Maxilar
+          </button>
 
           {/* Play button */}
           <button
@@ -413,55 +433,55 @@ export default function App() {
               : <Play size={18} strokeWidth={1.5} style={{ marginLeft: 2 }} />}
           </button>
 
-          {/* Step counter */}
-          <span style={{
-            fontSize: 10,
-            color: '#444',
-            letterSpacing: '0.08em',
-            fontVariantNumeric: 'tabular-nums',
-          }}>
-            {MAXILLARY.names[index]} / {MAXILLARY.names[total - 1]}
-          </span>
+          {/* Visibility toggle: Mandibular */}
+          <button
+            onClick={() => setShowMan(v => !v)}
+            onMouseEnter={() => setHoverMan(true)}
+            onMouseLeave={() => setHoverMan(false)}
+            style={{
+              ...btnBase,
+              color: showMan
+                ? (hoverMan ? '#ccc' : '#777')
+                : (hoverMan ? '#555' : '#333'),
+              background: hoverMan ? 'rgba(30,30,30,0.9)' : btnBase.background,
+              borderColor: showMan
+                ? (hoverMan ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.12)')
+                : 'rgba(255,255,255,0.06)',
+            }}
+          >
+            {showMan
+              ? <Eye size={14} strokeWidth={1.5} />
+              : <EyeOff size={14} strokeWidth={1.5} />}
+            Mandibular
+          </button>
+
+          {/* Focus / reset camera */}
+          <button
+            onClick={() => focusFnRef.current()}
+            onMouseEnter={() => setHoverFocus(true)}
+            onMouseLeave={() => setHoverFocus(false)}
+            title="Volver a posición inicial"
+            style={{
+              ...btnBase,
+              padding: '8px 12px',
+              color: hoverFocus ? '#ccc' : '#777',
+              background: hoverFocus ? 'rgba(30,30,30,0.9)' : btnBase.background,
+            }}
+          >
+            <Focus size={14} strokeWidth={1.5} />
+            Focus
+          </button>
         </div>
 
-        {/* Visibility toggle: Mandibular */}
-        <button
-          onClick={() => setShowMan(v => !v)}
-          onMouseEnter={() => setHoverMan(true)}
-          onMouseLeave={() => setHoverMan(false)}
-          style={{
-            ...btnBase,
-            color: showMan
-              ? (hoverMan ? '#ccc' : '#777')
-              : (hoverMan ? '#555' : '#333'),
-            background: hoverMan ? 'rgba(30,30,30,0.9)' : btnBase.background,
-            borderColor: showMan
-              ? (hoverMan ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.12)')
-              : 'rgba(255,255,255,0.06)',
-          }}
-        >
-          {showMan
-            ? <Eye size={14} strokeWidth={1.5} />
-            : <EyeOff size={14} strokeWidth={1.5} />}
-          Mandibular
-        </button>
-
-        {/* Focus / reset camera */}
-        <button
-          onClick={() => focusFnRef.current()}
-          onMouseEnter={() => setHoverFocus(true)}
-          onMouseLeave={() => setHoverFocus(false)}
-          title="Volver a posición inicial"
-          style={{
-            ...btnBase,
-            padding: '8px 12px',
-            color: hoverFocus ? '#ccc' : '#777',
-            background: hoverFocus ? 'rgba(30,30,30,0.9)' : btnBase.background,
-          }}
-        >
-          <Focus size={14} strokeWidth={1.5} />
-          Focus
-        </button>
+        {/* Step counter */}
+        <span style={{
+          fontSize: 10,
+          color: '#444',
+          letterSpacing: '0.08em',
+          fontVariantNumeric: 'tabular-nums',
+        }}>
+          {MAXILLARY.names[index]} / {MAXILLARY.names[total - 1]}
+        </span>
       </div>
     </div>
   )
