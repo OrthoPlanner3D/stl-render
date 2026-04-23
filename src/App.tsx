@@ -3,7 +3,8 @@ import { Canvas, useLoader, useThree, useFrame } from '@react-three/fiber'
 import { OrbitControls, Stage, useProgress, Html } from '@react-three/drei'
 import { STLLoader } from 'three/examples/jsm/loaders/STLLoader.js'
 import { Vector3 } from 'three'
-import { Play, Pause, Eye, EyeOff, Focus } from 'lucide-react'
+import { Play, Pause, Eye, EyeOff, Focus, Menu, X } from 'lucide-react'
+import { useBreakpoint } from './hooks/useBreakpoint'
 
 import stl_max_1 from './assets/files/1Maxillary.stl'
 import stl_max_1_att from './assets/files/1Maxillary_with_attachments.stl'
@@ -236,6 +237,8 @@ export default function App() {
   const [hoverMan, setHoverMan] = useState(false)
   const [hoverFocus, setHoverFocus] = useState(false)
   const [adjustCam, setAdjustCam] = useState<number | false>(2)
+  const [panelOpen, setPanelOpen] = useState(false)
+  const { isMobile } = useBreakpoint()
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const focusFnRef = useRef<() => void>(() => {})
   const total = MAXILLARY.stls.length
@@ -298,25 +301,46 @@ export default function App() {
 
       {/* Logo + patient — top left */}
       <div style={{
-        position: 'absolute', top: 24, left: 24,
+        position: 'absolute', top: isMobile ? 12 : 24, left: isMobile ? 12 : 24,
         zIndex: 10,
         pointerEvents: 'none',
         display: 'flex',
         flexDirection: 'column',
-        gap: 10,
+        gap: isMobile ? 8 : 12,
       }}>
-        <img src="/assets/logo-white.png" alt="Logo" style={{ height: 72, opacity: 0.85 }} />
+        <img src="/assets/logo-white.png" alt="Logo" style={{ height: isMobile ? 36 : 72, opacity: 0.9 }} />
         <div style={{ paddingLeft: 2 }}>
-          <div style={{ fontSize: 9, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#444', marginBottom: 3 }}>
+          <div style={{ fontSize: isMobile ? 8 : 9, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#666', marginBottom: 3 }}>
             Paciente
           </div>
-          <div style={{ fontSize: 14, fontWeight: 600, color: '#ccc', letterSpacing: '0.02em' }}>
+          <div style={{ fontSize: isMobile ? 12 : 15, fontWeight: 600, color: '#e0e0e0', letterSpacing: '0.02em' }}>
             John Wick
           </div>
         </div>
       </div>
 
-      {/* Step panel — right side */}
+      {/* Hamburger toggle — top right, mobile only */}
+      {isMobile && (
+        <button
+          onClick={() => setPanelOpen(v => !v)}
+          style={{
+            position: 'absolute', top: 12, right: 12,
+            zIndex: 30,
+            width: 36, height: 36,
+            borderRadius: 8,
+            border: '1px solid rgba(255,255,255,0.12)',
+            background: 'rgba(10,10,10,0.75)',
+            backdropFilter: 'blur(12px)',
+            color: '#999',
+            cursor: 'pointer',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}
+        >
+          {panelOpen ? <X size={16} strokeWidth={1.5} /> : <Menu size={16} strokeWidth={1.5} />}
+        </button>
+      )}
+
+      {/* Step panel — right side (collapsible on mobile) */}
       <div style={{
         position: 'absolute', right: 0, top: 0, bottom: 0,
         width: 88,
@@ -327,6 +351,8 @@ export default function App() {
         borderLeft: '1px solid rgba(255,255,255,0.04)',
         zIndex: 10,
         pointerEvents: 'auto',
+        transform: isMobile && !panelOpen ? 'translateX(100%)' : 'translateX(0)',
+        transition: 'transform 0.25s ease',
       }}>
         <StepPanel
           label="Maxilar"
@@ -350,7 +376,7 @@ export default function App() {
       {/* Floating controls — bottom center */}
       <div style={{
         position: 'absolute',
-        bottom: 32,
+        bottom: isMobile ? 24 : 32,
         left: '50%',
         transform: 'translateX(-50%)',
         display: 'flex',
@@ -362,7 +388,7 @@ export default function App() {
       }}>
         {/* Progress track */}
         <div style={{
-          width: 120,
+          width: isMobile ? 80 : 120,
           height: 2,
           borderRadius: 1,
           background: 'rgba(255,255,255,0.08)',
@@ -381,7 +407,7 @@ export default function App() {
         <div style={{
           display: 'flex',
           alignItems: 'center',
-          gap: 10,
+          gap: isMobile ? 6 : 10,
         }}>
           {/* Visibility toggle: Maxilar */}
           <button
@@ -390,6 +416,7 @@ export default function App() {
             onMouseLeave={() => setHoverMax(false)}
             style={{
               ...btnBase,
+              padding: isMobile ? '8px' : '8px 16px',
               color: showMax
                 ? (hoverMax ? '#ccc' : '#777')
                 : (hoverMax ? '#555' : '#333'),
@@ -402,7 +429,7 @@ export default function App() {
             {showMax
               ? <Eye size={14} strokeWidth={1.5} />
               : <EyeOff size={14} strokeWidth={1.5} />}
-            Maxilar
+            {!isMobile && 'Maxilar'}
           </button>
 
           {/* Play button */}
@@ -440,6 +467,7 @@ export default function App() {
             onMouseLeave={() => setHoverMan(false)}
             style={{
               ...btnBase,
+              padding: isMobile ? '8px' : '8px 16px',
               color: showMan
                 ? (hoverMan ? '#ccc' : '#777')
                 : (hoverMan ? '#555' : '#333'),
@@ -452,7 +480,7 @@ export default function App() {
             {showMan
               ? <Eye size={14} strokeWidth={1.5} />
               : <EyeOff size={14} strokeWidth={1.5} />}
-            Mandibular
+            {!isMobile && 'Mandibular'}
           </button>
 
           {/* Focus / reset camera */}
@@ -463,13 +491,13 @@ export default function App() {
             title="Volver a posición inicial"
             style={{
               ...btnBase,
-              padding: '8px 12px',
+              padding: isMobile ? '8px' : '8px 12px',
               color: hoverFocus ? '#ccc' : '#777',
               background: hoverFocus ? 'rgba(30,30,30,0.9)' : btnBase.background,
             }}
           >
             <Focus size={14} strokeWidth={1.5} />
-            Focus
+            {!isMobile && 'Focus'}
           </button>
         </div>
 
