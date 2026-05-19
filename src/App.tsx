@@ -255,7 +255,7 @@ export default function App() {
           if (i >= total - 1) { setPlaying(false); return i }
           return i + 1
         })
-      }, 25)
+      }, 200)
     } else {
       if (intervalRef.current) clearInterval(intervalRef.current)
     }
