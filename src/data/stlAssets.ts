@@ -1,5 +1,13 @@
 import { useLoader } from '@react-three/fiber'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
+import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js'
+
+const _draco = new DRACOLoader()
+_draco.setDecoderPath('/draco/')
+
+export function extendGLTFLoader(loader: GLTFLoader) {
+  loader.setDRACOLoader(_draco)
+}
 
 import glb_max_1 from '../assets/files-glb/1Maxillary.glb'
 import glb_max_1_att from '../assets/files-glb/1Maxillary_with_attachments.glb'
@@ -79,4 +87,4 @@ export const MANDIBULAR = {
 }
 
 const allGlbs = [...MAXILLARY.stls, ...MANDIBULAR.stls]
-allGlbs.forEach(url => useLoader.preload(GLTFLoader, url))
+allGlbs.forEach(url => useLoader.preload(GLTFLoader, url, extendGLTFLoader))
