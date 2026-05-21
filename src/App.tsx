@@ -1,9 +1,9 @@
-import { Suspense, useState, useEffect, useRef } from 'react'
+import { Suspense, useState, useRef, useEffect, useCallback } from 'react'
 import { Canvas, useLoader, useThree, useFrame } from '@react-three/fiber'
 import { OrbitControls, Stage, useProgress, Html } from '@react-three/drei'
 import { STLLoader } from 'three/examples/jsm/loaders/STLLoader.js'
 import { Vector3 } from 'three'
-import { Play, Pause, Eye, EyeOff, Focus, Menu, X } from 'lucide-react'
+import { Play, Pause, Eye, EyeOff, Focus } from 'lucide-react'
 import { useBreakpoint } from './hooks/useBreakpoint'
 
 import stl_max_1 from './assets/files-v2/1Maxillary.stl'
@@ -102,6 +102,7 @@ function FocusController({ fnRef }: { fnRef: React.MutableRefObject<() => void> 
   useEffect(() => {
     const ctrl = controls as any
     if (!ctrl || hasSaved.current) return
+    // Wait until Stage's adjustCamera animation finishes (2000ms) + buffer
     const timer = setTimeout(() => {
       savedPos.current = camera.position.clone()
       savedTarget.current = ctrl.target?.clone() ?? new Vector3()
@@ -110,7 +111,7 @@ function FocusController({ fnRef }: { fnRef: React.MutableRefObject<() => void> 
         animating.current = true
       }
       hasSaved.current = true
-    }, 800)
+    }, 2500)
     return () => clearTimeout(timer)
   }, [controls, fnRef, camera])
 
@@ -141,73 +142,173 @@ function StlModel({ url, color, visible }: { url: string; color: string; visible
   )
 }
 
-function StepPanel({ label, names, filenames, index, visible, onSelect }: {
+// ── Thumbnail generation via hidden R3F Canvas ────────────────────────────────
+// Uses already-preloaded geometries from the R3F cache — no re-parsing.
+
+function ThumbnailFrame({ url, onCapture }: {
+  url: string
+  onCapture: (dataUrl: string) => void
+}) {
+  const geometry = useLoader(STLLoader, url)
+  const { camera, invalidate } = useThree()
+  const capturedRef = useRef(false)
+
+  useEffect(() => {
+    geometry.computeBoundingSphere()
+    const r = geometry.boundingSphere!.radius
+    camera.position.set(r * 1.5, r * 0.5, r * 2.5)
+    camera.lookAt(0, 0, 0)
+    camera.updateProjectionMatrix()
+    invalidate()
+  }, [geometry, camera, invalidate])
+
+  useFrame(({ gl, scene, camera }) => {
+    if (capturedRef.current) return
+    capturedRef.current = true
+    gl.render(scene, camera)
+    onCapture(gl.domElement.toDataURL('image/jpeg', 0.75))
+  })
+
+  return (
+    <>
+      <color attach="background" args={[0x111111]} />
+      <ambientLight intensity={0.5} />
+      <directionalLight position={[2, 3, 4]} intensity={1} />
+      <mesh geometry={geometry}>
+        <meshStandardMaterial color="#a8aaab" />
+      </mesh>
+    </>
+  )
+}
+
+function ThumbnailGenerator({ urls, captured, onCapture }: {
+  urls: string[]
+  captured: Set<string>
+  onCapture: (url: string, dataUrl: string) => void
+}) {
+  const nextUrl = urls.find(u => !captured.has(u))
+  if (!nextUrl) return null
+
+  return (
+    <div style={{
+      position: 'fixed', left: -200, top: 0,
+      width: 64, height: 64,
+      pointerEvents: 'none', overflow: 'hidden',
+    }}>
+      <Canvas
+        frameloop="demand"
+        camera={{ fov: 35 }}
+        gl={{ preserveDrawingBuffer: true, antialias: false }}
+      >
+        <Suspense fallback={null}>
+          <ThumbnailFrame
+            key={nextUrl}
+            url={nextUrl}
+            onCapture={(dataUrl) => onCapture(nextUrl, dataUrl)}
+          />
+        </Suspense>
+      </Canvas>
+    </div>
+  )
+}
+// ─────────────────────────────────────────────────────────────────────────────
+
+function StepPanel({ label, names, filenames, stls, thumbnails, index, visible, onSelect, isMobile }: {
   label: string
   names: string[]
   filenames: string[]
+  stls: string[]
+  thumbnails: Map<string, string>
   index: number
   visible: boolean
   onSelect: (i: number) => void
+  isMobile: boolean
 }) {
+  const size = isMobile ? 36 : 48
+
   return (
     <div style={{
-      flex: 1,
       display: 'flex',
-      flexDirection: 'column',
-      padding: '12px 10px',
-      minHeight: 0,
+      alignItems: 'center',
+      gap: 8,
+      padding: isMobile ? '4px 10px' : '6px 16px',
     }}>
       <div style={{
         fontSize: 9,
         fontWeight: 600,
         letterSpacing: '0.12em',
         textTransform: 'uppercase',
-        color: visible ? '#555' : '#333',
-        marginBottom: 8,
-        paddingLeft: 2,
+        color: visible ? '#666' : '#333',
+        minWidth: isMobile ? 52 : 64,
+        flexShrink: 0,
         transition: 'color 0.2s',
       }}>
         {label}
       </div>
       <div style={{
-        flex: 1,
-        display: 'grid',
-        gridTemplateColumns: '1fr 1fr',
-        gridAutoRows: '1fr',
+        display: 'flex',
         gap: 4,
+        overflowX: 'auto',
+        flex: 1,
+        padding: '2px 0',
+        scrollbarWidth: 'none',
       }}>
         {names.map((name, i) => {
           const isActive = i === index
           const isPast = i < index
+          const thumb = thumbnails.get(stls[i])
           return (
             <button
               key={i}
               onClick={() => onSelect(i)}
               title={filenames[i]}
               style={{
+                flexShrink: 0,
+                width: size,
+                height: size,
                 borderRadius: 6,
-                border: isActive ? '1px solid rgba(255,255,255,0.2)' : '1px solid transparent',
-                background: isActive
-                  ? 'rgba(255,255,255,0.08)'
-                  : isPast
-                    ? 'rgba(255,255,255,0.03)'
-                    : 'transparent',
-                color: isActive
-                  ? '#e0e0e0'
-                  : isPast
-                    ? '#4a7a4a'
-                    : '#333',
+                padding: 0,
                 cursor: 'pointer',
-                fontSize: 10,
-                fontWeight: isActive ? 600 : 400,
-                transition: 'all 0.15s',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
+                border: isActive
+                  ? '1px solid rgba(255,255,255,0.45)'
+                  : '1px solid rgba(255,255,255,0.08)',
+                background: isActive
+                  ? 'rgba(255,255,255,0.1)'
+                  : 'rgba(255,255,255,0.02)',
+                overflow: 'hidden',
                 opacity: visible ? 1 : 0.3,
+                position: 'relative',
+                transition: 'border-color 0.15s, opacity 0.2s',
               }}
             >
-              {name}
+              {thumb ? (
+                <img
+                  src={thumb}
+                  alt={name}
+                  style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                />
+              ) : (
+                <span style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: '100%',
+                  height: '100%',
+                  fontSize: 10,
+                  color: isActive ? '#e0e0e0' : isPast ? '#4a7a4a' : '#333',
+                  fontWeight: isActive ? 600 : 400,
+                }}>
+                  {name}
+                </span>
+              )}
+              {isPast && (
+                <div style={{
+                  position: 'absolute',
+                  bottom: 0, left: 0, right: 0,
+                  height: 2,
+                  background: 'rgba(74,122,74,0.7)',
+                }} />
+              )}
             </button>
           )
         })}
@@ -245,11 +346,18 @@ export default function App() {
   const [hoverMan, setHoverMan] = useState(false)
   const [hoverFocus, setHoverFocus] = useState(false)
   const [adjustCam, setAdjustCam] = useState<number | false>(2)
-  const [panelOpen, setPanelOpen] = useState(false)
+  const [thumbnails, setThumbnails] = useState<Map<string, string>>(new Map())
   const { isMobile } = useBreakpoint()
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const focusFnRef = useRef<() => void>(() => {})
   const total = MAXILLARY.stls.length
+
+  const capturedUrls = useRef(new Set<string>())
+
+  const handleCapture = useCallback((url: string, dataUrl: string) => {
+    capturedUrls.current.add(url)
+    setThumbnails(prev => new Map(prev).set(url, dataUrl))
+  }, [])
 
   useEffect(() => {
     const t = setTimeout(() => setAdjustCam(false), 2000)
@@ -286,7 +394,7 @@ export default function App() {
     <div style={{
       width: '100%', height: '100vh', background: '#000',
       fontFamily: 'system-ui, sans-serif',
-      display: 'flex', overflow: 'hidden', position: 'relative',
+      overflow: 'hidden', position: 'relative',
     }}>
       {/* 3D Canvas — full screen */}
       <div
@@ -327,96 +435,45 @@ export default function App() {
         </div>
       </div>
 
-      {/* Hamburger toggle — top right, mobile only */}
-      {isMobile && (
-        <button
-          onClick={() => setPanelOpen(v => !v)}
-          style={{
-            position: 'absolute', top: 12, right: 12,
-            zIndex: 30,
-            width: 36, height: 36,
-            borderRadius: 8,
-            border: '1px solid rgba(255,255,255,0.12)',
-            background: 'rgba(10,10,10,0.75)',
-            backdropFilter: 'blur(12px)',
-            color: '#999',
-            cursor: 'pointer',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}
-        >
-          {panelOpen ? <X size={16} strokeWidth={1.5} /> : <Menu size={16} strokeWidth={1.5} />}
-        </button>
-      )}
-
-      {/* Step panel — right side (collapsible on mobile) */}
-      <div style={{
-        position: 'absolute', right: 0, top: 0, bottom: 0,
-        width: 88,
-        display: 'flex',
-        flexDirection: 'column',
-        background: 'rgba(0,0,0,0.6)',
-        backdropFilter: 'blur(16px)',
-        borderLeft: '1px solid rgba(255,255,255,0.04)',
-        zIndex: 10,
-        pointerEvents: 'auto',
-        transform: isMobile && !panelOpen ? 'translateX(100%)' : 'translateX(0)',
-        transition: 'transform 0.25s ease',
-      }}>
-        <StepPanel
-          label="Maxilar"
-          names={MAXILLARY.names}
-          filenames={MAXILLARY.filenames}
-          index={index}
-          visible={showMax}
-          onSelect={handleSelect}
-        />
-        <div style={{ height: 1, background: 'rgba(255,255,255,0.05)', margin: '0 10px' }} />
-        <StepPanel
-          label="Mandibular"
-          names={MANDIBULAR.names}
-          filenames={MANDIBULAR.filenames}
-          index={index}
-          visible={showMan}
-          onSelect={handleSelect}
-        />
-      </div>
-
-      {/* Floating controls — bottom center */}
+      {/* Bottom bar — controls + frame strips */}
       <div style={{
         position: 'absolute',
-        bottom: isMobile ? 24 : 32,
-        left: '50%',
-        transform: 'translateX(-50%)',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        gap: 8,
+        bottom: 0, left: 0, right: 0,
+        background: 'rgba(0,0,0,0.72)',
+        backdropFilter: 'blur(16px)',
+        borderTop: '1px solid rgba(255,255,255,0.05)',
         zIndex: 20,
         pointerEvents: 'none',
+        display: 'flex',
+        flexDirection: 'column',
       }}>
-        {/* Progress track */}
-        <div style={{
-          width: isMobile ? 80 : 120,
-          height: 2,
-          borderRadius: 1,
-          background: 'rgba(255,255,255,0.08)',
-          overflow: 'hidden',
-        }}>
-          <div style={{
-            height: '100%',
-            width: `${progress * 100}%`,
-            background: 'rgba(255,255,255,0.35)',
-            borderRadius: 1,
-            transition: 'width 0.05s linear',
-          }} />
-        </div>
-
-        {/* Button row */}
+        {/* Controls row */}
         <div style={{
           display: 'flex',
           alignItems: 'center',
+          justifyContent: 'center',
           gap: isMobile ? 6 : 10,
+          padding: isMobile ? '10px 12px 6px' : '12px 16px 8px',
+          pointerEvents: 'auto',
         }}>
+          {/* Progress track */}
+          <div style={{
+            width: isMobile ? 60 : 100,
+            height: 2,
+            borderRadius: 1,
+            background: 'rgba(255,255,255,0.08)',
+            overflow: 'hidden',
+            flexShrink: 0,
+          }}>
+            <div style={{
+              height: '100%',
+              width: `${progress * 100}%`,
+              background: 'rgba(255,255,255,0.35)',
+              borderRadius: 1,
+              transition: 'width 0.05s linear',
+            }} />
+          </div>
+
           {/* Visibility toggle: Maxilar */}
           <button
             onClick={() => setShowMax(v => !v)}
@@ -425,18 +482,14 @@ export default function App() {
             style={{
               ...btnBase,
               padding: isMobile ? '8px' : '8px 16px',
-              color: showMax
-                ? (hoverMax ? '#ccc' : '#777')
-                : (hoverMax ? '#555' : '#333'),
+              color: showMax ? (hoverMax ? '#ccc' : '#777') : (hoverMax ? '#555' : '#333'),
               background: hoverMax ? 'rgba(30,30,30,0.9)' : btnBase.background,
               borderColor: showMax
                 ? (hoverMax ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.12)')
                 : 'rgba(255,255,255,0.06)',
             }}
           >
-            {showMax
-              ? <Eye size={14} strokeWidth={1.5} />
-              : <EyeOff size={14} strokeWidth={1.5} />}
+            {showMax ? <Eye size={14} strokeWidth={1.5} /> : <EyeOff size={14} strokeWidth={1.5} />}
             {!isMobile && 'Maxilar'}
           </button>
 
@@ -476,18 +529,14 @@ export default function App() {
             style={{
               ...btnBase,
               padding: isMobile ? '8px' : '8px 16px',
-              color: showMan
-                ? (hoverMan ? '#ccc' : '#777')
-                : (hoverMan ? '#555' : '#333'),
+              color: showMan ? (hoverMan ? '#ccc' : '#777') : (hoverMan ? '#555' : '#333'),
               background: hoverMan ? 'rgba(30,30,30,0.9)' : btnBase.background,
               borderColor: showMan
                 ? (hoverMan ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.12)')
                 : 'rgba(255,255,255,0.06)',
             }}
           >
-            {showMan
-              ? <Eye size={14} strokeWidth={1.5} />
-              : <EyeOff size={14} strokeWidth={1.5} />}
+            {showMan ? <Eye size={14} strokeWidth={1.5} /> : <EyeOff size={14} strokeWidth={1.5} />}
             {!isMobile && 'Mandibular'}
           </button>
 
@@ -507,18 +556,56 @@ export default function App() {
             <Focus size={14} strokeWidth={1.5} />
             {!isMobile && 'Focus'}
           </button>
+
+          {/* Step counter */}
+          <span style={{
+            fontSize: 10,
+            color: '#444',
+            letterSpacing: '0.08em',
+            fontVariantNumeric: 'tabular-nums',
+            flexShrink: 0,
+          }}>
+            {MAXILLARY.names[index]} / {MAXILLARY.names[total - 1]}
+          </span>
         </div>
 
-        {/* Step counter */}
-        <span style={{
-          fontSize: 10,
-          color: '#444',
-          letterSpacing: '0.08em',
-          fontVariantNumeric: 'tabular-nums',
-        }}>
-          {MAXILLARY.names[index]} / {MAXILLARY.names[total - 1]}
-        </span>
+        {/* Divider */}
+        <div style={{ height: 1, background: 'rgba(255,255,255,0.05)', margin: '0 12px' }} />
+
+        {/* Frame strips */}
+        <div style={{ pointerEvents: 'auto' }}>
+          <StepPanel
+            label="Maxilar"
+            names={MAXILLARY.names}
+            filenames={MAXILLARY.filenames}
+            stls={MAXILLARY.stls}
+            thumbnails={thumbnails}
+            index={index}
+            visible={showMax}
+            onSelect={handleSelect}
+            isMobile={isMobile}
+          />
+          <div style={{ height: 1, background: 'rgba(255,255,255,0.04)', margin: '0 12px' }} />
+          <StepPanel
+            label="Mandibular"
+            names={MANDIBULAR.names}
+            filenames={MANDIBULAR.filenames}
+            stls={MANDIBULAR.stls}
+            thumbnails={thumbnails}
+            index={index}
+            visible={showMan}
+            onSelect={handleSelect}
+            isMobile={isMobile}
+          />
+        </div>
       </div>
+
+      {/* Hidden thumbnail generator — uses preloaded R3F geometry cache */}
+      <ThumbnailGenerator
+        urls={allStls}
+        captured={capturedUrls.current}
+        onCapture={handleCapture}
+      />
     </div>
   )
 }
