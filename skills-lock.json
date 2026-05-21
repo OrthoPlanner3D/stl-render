@@ -1,6 +1,12 @@
 {
   "version": 1,
   "skills": {
+    "react-router-data-mode": {
+      "source": "remix-run/agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/react-router-data-mode/SKILL.md",
+      "computedHash": "76e3e0f70ff47b743bd90999e676515221e25fd7ee89cd9e5b340417b1a601e2"
+    },
     "three-best-practices": {
       "source": "emalorenzo/three-agent-skills",
       "sourceType": "github",
