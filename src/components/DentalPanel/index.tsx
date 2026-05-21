@@ -1,12 +1,20 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import DentalArch from './DentalArch'
 
+const STORAGE_KEY = 'dental-spacings'
+
 export default function DentalPanel() {
-  const [spacings, setSpacings] = useState<Record<string, string>>({})
+  const [spacings, setSpacings] = useState<Record<string, string>>(() => {
+    try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}') } catch { return {} }
+  })
   const [pendingContact, setPendingContact] = useState<string | null>(null)
   const [pendingSpacingValue, setPendingSpacingValue] = useState('')
   const [pendingInputPos, setPendingInputPos] = useState<{ x: number; y: number } | null>(null)
   const panelRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(spacings))
+  }, [spacings])
 
   function handleContactClick(contactId: string, e: React.MouseEvent<SVGElement>) {
     const rect = panelRef.current!.getBoundingClientRect()
