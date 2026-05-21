@@ -1,0 +1,18 @@
+export const btnBase: React.CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: 6,
+  padding: '8px 16px',
+  borderRadius: 100,
+  border: '1px solid rgba(255,255,255,0.12)',
+  background: 'rgba(10,10,10,0.75)',
+  color: '#999',
+  cursor: 'pointer',
+  fontSize: 12,
+  fontWeight: 500,
+  letterSpacing: '0.04em',
+  transition: 'all 0.2s',
+  backdropFilter: 'blur(12px)',
+  whiteSpace: 'nowrap',
+  pointerEvents: 'auto',
+}
