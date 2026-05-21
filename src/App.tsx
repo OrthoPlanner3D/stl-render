@@ -3,7 +3,7 @@ import { Canvas, useLoader, useThree, useFrame } from '@react-three/fiber'
 import { OrbitControls, Stage, useProgress, Html } from '@react-three/drei'
 import { STLLoader } from 'three/examples/jsm/loaders/STLLoader.js'
 import { Vector3 } from 'three'
-import { Play, Pause, Eye, EyeOff, Focus } from 'lucide-react'
+import { Play, Pause, Eye, EyeOff, Focus, ArrowUp, ArrowDown, ArrowLeft, ArrowRight, FlipHorizontal2 } from 'lucide-react'
 import { useBreakpoint } from './hooks/useBreakpoint'
 
 import stl_max_1 from './assets/files-v2/1Maxillary.stl'
@@ -92,37 +92,61 @@ function Loader() {
   return <Html center style={{ color: '#fff', fontSize: 14 }}>{Math.round(progress)}%</Html>
 }
 
-function FocusController({ fnRef }: { fnRef: React.MutableRefObject<() => void> }) {
+// D-pad layout: col/row positions in a 3×3 grid (corners empty)
+const PRESET_VIEWS: { title: string; icon: React.ReactNode; dir: [number, number, number]; col: number; row: number }[] = [
+  { title: 'Vista superior',          icon: <ArrowUp size={14} strokeWidth={1.5} />,         dir: [0,  1,  0], col: 2, row: 1 },
+  { title: 'Vista lateral izquierda', icon: <ArrowLeft size={14} strokeWidth={1.5} />,        dir: [-1, 0,  0], col: 1, row: 2 },
+  { title: 'Vista posterior',         icon: <FlipHorizontal2 size={14} strokeWidth={1.5} />,  dir: [0,  0, -1], col: 2, row: 2 },
+  { title: 'Vista lateral derecha',   icon: <ArrowRight size={14} strokeWidth={1.5} />,       dir: [1,  0,  0], col: 3, row: 2 },
+  { title: 'Vista inferior',          icon: <ArrowDown size={14} strokeWidth={1.5} />,        dir: [0, -1,  0], col: 2, row: 3 },
+]
+
+function CameraController({ focusFnRef, viewFnRef }: {
+  focusFnRef: React.MutableRefObject<() => void>
+  viewFnRef: React.MutableRefObject<(dir: [number, number, number]) => void>
+}) {
   const { camera, controls } = useThree()
   const savedPos = useRef<Vector3 | null>(null)
   const savedTarget = useRef<Vector3 | null>(null)
+  const animTarget = useRef<Vector3 | null>(null)
   const animating = useRef(false)
   const hasSaved = useRef(false)
 
   useEffect(() => {
     const ctrl = controls as any
     if (!ctrl || hasSaved.current) return
-    // Wait until Stage's adjustCamera animation finishes (2000ms) + buffer
     const timer = setTimeout(() => {
       savedPos.current = camera.position.clone()
       savedTarget.current = ctrl.target?.clone() ?? new Vector3()
-      fnRef.current = () => {
+
+      focusFnRef.current = () => {
+        animTarget.current = savedPos.current!.clone()
         ctrl.enabled = false
         animating.current = true
       }
+
+      viewFnRef.current = ([dx, dy, dz]) => {
+        if (!savedTarget.current || !savedPos.current) return
+        const dist = savedPos.current.distanceTo(savedTarget.current)
+        const dir = new Vector3(dx, dy, dz).normalize()
+        animTarget.current = savedTarget.current.clone().addScaledVector(dir, dist)
+        ctrl.enabled = false
+        animating.current = true
+      }
+
       hasSaved.current = true
     }, 2500)
     return () => clearTimeout(timer)
-  }, [controls, fnRef, camera])
+  }, [controls, focusFnRef, viewFnRef, camera])
 
   useFrame(() => {
-    if (!animating.current || !savedPos.current || !savedTarget.current) return
+    if (!animating.current || !animTarget.current || !savedTarget.current) return
     const ctrl = controls as any
-    camera.position.lerp(savedPos.current, 0.1)
+    camera.position.lerp(animTarget.current, 0.1)
     ctrl?.target?.lerp(savedTarget.current, 0.1)
     ctrl?.update?.()
-    if (camera.position.distanceTo(savedPos.current) < 0.5) {
-      camera.position.copy(savedPos.current)
+    if (camera.position.distanceTo(animTarget.current) < 0.5) {
+      camera.position.copy(animTarget.current)
       ctrl?.target?.copy(savedTarget.current)
       ctrl.enabled = true
       ctrl?.update?.()
@@ -350,6 +374,7 @@ export default function App() {
   const { isMobile } = useBreakpoint()
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const focusFnRef = useRef<() => void>(() => {})
+  const viewFnRef = useRef<(dir: [number, number, number]) => void>(() => {})
   const total = MAXILLARY.stls.length
 
   const capturedUrls = useRef(new Set<string>())
@@ -406,7 +431,7 @@ export default function App() {
         <Canvas shadows frameloop="always" camera={{ fov: 35 }} style={{ height: '100%' }}>
           <Suspense fallback={<Loader />}>
             <Stage environment="city" intensity={0.5} shadows adjustCamera={adjustCam}>
-              <FocusController fnRef={focusFnRef} />
+              <CameraController focusFnRef={focusFnRef} viewFnRef={viewFnRef} />
               <StlModel url={MAXILLARY.stls[index]} color="#a8aaab" visible={showMax} />
               <StlModel url={MANDIBULAR.stls[index]} color="#a8aaab" visible={showMan} />
             </Stage>
@@ -433,6 +458,57 @@ export default function App() {
             John Wick
           </div>
         </div>
+      </div>
+
+      {/* View presets — D-pad layout, right side vertically centered */}
+      <div style={{
+        position: 'absolute',
+        right: 20,
+        top: '50%',
+        transform: 'translateY(-50%)',
+        display: 'grid',
+        gridTemplateColumns: 'repeat(3, 30px)',
+        gridTemplateRows: 'repeat(3, 30px)',
+        gap: 4,
+        zIndex: 20,
+        pointerEvents: 'auto',
+      }}>
+        {PRESET_VIEWS.map(({ title, icon, dir, col, row }) => (
+          <button
+            key={title}
+            onClick={() => viewFnRef.current(dir)}
+            title={title}
+            style={{
+              gridColumn: col,
+              gridRow: row,
+              width: 30,
+              height: 30,
+              borderRadius: 6,
+              border: '1px solid rgba(255,255,255,0.1)',
+              background: 'rgba(10,10,10,0.7)',
+              backdropFilter: 'blur(12px)',
+              color: '#666',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              transition: 'color 0.15s, border-color 0.15s, background 0.15s',
+              padding: 0,
+            }}
+            onMouseEnter={e => {
+              e.currentTarget.style.color = '#ccc'
+              e.currentTarget.style.borderColor = 'rgba(255,255,255,0.2)'
+              e.currentTarget.style.background = 'rgba(30,30,30,0.9)'
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.color = '#666'
+              e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'
+              e.currentTarget.style.background = 'rgba(10,10,10,0.7)'
+            }}
+          >
+            {icon}
+          </button>
+        ))}
       </div>
 
       {/* Bottom bar — controls + frame strips */}
