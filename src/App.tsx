@@ -1,8 +1,7 @@
-import { useState, useRef, useEffect, useCallback } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useBreakpoint } from './hooks/useBreakpoint'
-import { MAXILLARY, MANDIBULAR, allStls } from './data/stlAssets'
+import { MAXILLARY, MANDIBULAR } from './data/stlAssets'
 import StlViewer from './components/StlViewer'
-import ThumbnailGenerator from './components/ThumbnailGenerator'
 import DentalPanel from './components/DentalPanel'
 import BottomBar from './components/BottomBar'
 import ViewPresets from './components/ViewPresets'
@@ -13,15 +12,10 @@ export default function App() {
   const [playing, setPlaying] = useState(false)
   const [showMax, setShowMax] = useState(true)
   const [showMan, setShowMan] = useState(true)
-  const [thumbnails, setThumbnails] = useState<Map<string, string>>(new Map())
   const { isMobile } = useBreakpoint()
   const focusFnRef = useRef<() => void>(() => {})
   const viewFnRef = useRef<(dir: [number, number, number]) => void>(() => {})
   const total = MAXILLARY.stls.length
-
-  const handleCapture = useCallback((url: string, dataUrl: string) => {
-    setThumbnails(prev => new Map(prev).set(url, dataUrl))
-  }, [])
 
   function togglePlay() {
     if (!playing && index === total - 1) setIndex(0)
@@ -62,7 +56,6 @@ export default function App() {
           playing={playing}
           showMax={showMax}
           showMan={showMan}
-          thumbnails={thumbnails}
           isMobile={isMobile}
           onTogglePlay={togglePlay}
           onToggleMax={() => setShowMax(v => !v)}
@@ -70,7 +63,6 @@ export default function App() {
           onFocus={() => focusFnRef.current()}
           onSelectFrame={i => { setIndex(i); setPlaying(false) }}
         />
-        <ThumbnailGenerator urls={allStls} onCapture={handleCapture} />
       </div>
 
       {/* 30% — Panel dental */}

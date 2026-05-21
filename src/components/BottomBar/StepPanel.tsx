@@ -2,15 +2,13 @@ interface StepPanelProps {
   label: string
   names: string[]
   filenames: string[]
-  stls: string[]
-  thumbnails: Map<string, string>
   index: number
   visible: boolean
   onSelect: (i: number) => void
   isMobile: boolean
 }
 
-export default function StepPanel({ label, names, filenames, stls, thumbnails, index, visible, onSelect, isMobile }: StepPanelProps) {
+export default function StepPanel({ label, names, filenames, index, visible, onSelect, isMobile }: StepPanelProps) {
   const size = isMobile ? 36 : 48
 
   return (
@@ -25,7 +23,6 @@ export default function StepPanel({ label, names, filenames, stls, thumbnails, i
         {names.map((name, i) => {
           const isActive = i === index
           const isPast = i < index
-          const thumb = thumbnails.get(stls[i])
           return (
             <button
               key={i}
@@ -38,18 +35,14 @@ export default function StepPanel({ label, names, filenames, stls, thumbnails, i
                 overflow: 'hidden', opacity: visible ? 1 : 0.3, position: 'relative', transition: 'border-color 0.15s, opacity 0.2s',
               }}
             >
-              {thumb ? (
-                <img src={thumb} alt={name} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
-              ) : (
-                <span style={{
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  width: '100%', height: '100%', fontSize: 10,
-                  color: isActive ? '#e0e0e0' : isPast ? '#4a7a4a' : '#333',
-                  fontWeight: isActive ? 600 : 400,
-                }}>
-                  {name}
-                </span>
-              )}
+              <span style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                width: '100%', height: '100%', fontSize: 10,
+                color: isActive ? '#e0e0e0' : isPast ? '#4a7a4a' : '#333',
+                fontWeight: isActive ? 600 : 400,
+              }}>
+                {name}
+              </span>
               {isPast && (
                 <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 2, background: 'rgba(74,122,74,0.7)' }} />
               )}

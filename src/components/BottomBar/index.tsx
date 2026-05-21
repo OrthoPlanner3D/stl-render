@@ -10,7 +10,6 @@ interface BottomBarProps {
   playing: boolean
   showMax: boolean
   showMan: boolean
-  thumbnails: Map<string, string>
   isMobile: boolean
   onTogglePlay: () => void
   onToggleMax: () => void
@@ -20,7 +19,7 @@ interface BottomBarProps {
 }
 
 export default function BottomBar({
-  index, total, playing, showMax, showMan, thumbnails, isMobile,
+  index, total, playing, showMax, showMan, isMobile,
   onTogglePlay, onToggleMax, onToggleMan, onFocus, onSelectFrame,
 }: BottomBarProps) {
   const [hoverPlay, setHoverPlay] = useState(false)
@@ -127,14 +126,12 @@ export default function BottomBar({
       <div style={{ pointerEvents: 'auto' }}>
         <StepPanel
           label="Maxilar" names={MAXILLARY.names} filenames={MAXILLARY.filenames}
-          stls={MAXILLARY.stls} thumbnails={thumbnails} index={index}
-          visible={showMax} onSelect={onSelectFrame} isMobile={isMobile}
+          index={index} visible={showMax} onSelect={onSelectFrame} isMobile={isMobile}
         />
         <div style={{ height: 1, background: 'rgba(255,255,255,0.04)', margin: '0 12px' }} />
         <StepPanel
           label="Mandibular" names={MANDIBULAR.names} filenames={MANDIBULAR.filenames}
-          stls={MANDIBULAR.stls} thumbnails={thumbnails} index={index}
-          visible={showMan} onSelect={onSelectFrame} isMobile={isMobile}
+          index={index} visible={showMan} onSelect={onSelectFrame} isMobile={isMobile}
         />
       </div>
     </div>

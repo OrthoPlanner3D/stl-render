@@ -78,7 +78,5 @@ export const MANDIBULAR = {
   ],
 }
 
-export const allStls = [...MAXILLARY.stls, ...MANDIBULAR.stls]
-
-// Preload all STL geometries into R3F cache at module init time
+const allStls = [...MAXILLARY.stls, ...MANDIBULAR.stls]
 allStls.forEach(url => useLoader.preload(STLLoader, url))
