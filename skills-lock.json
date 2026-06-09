@@ -13,6 +13,12 @@
       "skillPath": "skills/react-router-data-mode/SKILL.md",
       "computedHash": "76e3e0f70ff47b743bd90999e676515221e25fd7ee89cd9e5b340417b1a601e2"
     },
+    "shadcn": {
+      "source": "shadcn/ui",
+      "sourceType": "github",
+      "skillPath": "skills/shadcn/SKILL.md",
+      "computedHash": "ac9d0d69caac7de1d1e5647f3db3bcd2f13af355d6b3a78780fbf7fc80e8dca0"
+    },
     "three-best-practices": {
       "source": "emalorenzo/three-agent-skills",
       "sourceType": "github",
