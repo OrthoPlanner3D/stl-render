@@ -25,4 +25,4 @@ dist-ssr
 scripts
 docs
 plans
-.playwrite-mcp
+.playwright-mcp/*
