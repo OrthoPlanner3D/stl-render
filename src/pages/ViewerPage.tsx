@@ -66,10 +66,7 @@ export default function ViewerPage() {
       </div>
 
       {/* 30% — Panel dental */}
-      <div style={{
-        width: '30%', height: '100vh', flexShrink: 0,
-        background: 'rgba(8,8,8,0.98)', borderLeft: '1px solid rgba(255,255,255,0.06)',
-      }}>
+      <div className="w-[30%] h-screen shrink-0 bg-[rgba(8,8,8,0.98)] border-l border-white/[0.06]">
         <DentalPanel />
       </div>
     </div>

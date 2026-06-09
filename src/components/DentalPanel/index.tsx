@@ -1,4 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
+import { Input } from '@/components/ui/input'
+import { Separator } from '@/components/ui/separator'
 import DentalArch from './DentalArch'
 
 const STORAGE_KEY = 'dental-spacings'
@@ -37,17 +39,7 @@ export default function DentalPanel() {
   return (
     <div
       ref={panelRef}
-      style={{
-        width: '100%',
-        height: '100%',
-        position: 'relative',
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'center',
-        padding: '24px 20px',
-        boxSizing: 'border-box',
-        pointerEvents: 'auto',
-      }}
+      className="dark relative flex h-full w-full flex-col justify-center px-5 py-6 pointer-events-auto"
     >
       <div style={{ fontSize: 9, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#444', marginBottom: 6 }}>
         Maxilar
@@ -56,7 +48,7 @@ export default function DentalPanel() {
         <DentalArch archKey="max" cx={100} cy={5} flip={false} spacings={spacings} onContactClick={handleContactClick} />
       </svg>
 
-      <div style={{ height: 1, background: 'rgba(255,255,255,0.05)', margin: '16px 0' }} />
+      <Separator className="my-4" />
 
       <div style={{ fontSize: 9, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#444', marginBottom: 6 }}>
         Mandibular
@@ -79,7 +71,7 @@ export default function DentalPanel() {
           alignItems: 'center',
           gap: 4,
         }}>
-          <input
+          <Input
             autoFocus
             type="number"
             step="0.1"
@@ -93,15 +85,7 @@ export default function DentalPanel() {
               if (e.key === 'Escape') { setPendingContact(null); setPendingInputPos(null) }
             }}
             onBlur={commitSpacing}
-            style={{
-              width: 50,
-              background: 'transparent',
-              border: 'none',
-              color: '#ffc864',
-              fontSize: 13,
-              fontFamily: 'system-ui, sans-serif',
-              outline: 'none',
-            }}
+            className="h-6 w-[50px] border-none bg-transparent p-0 text-[13px] text-[#ffc864] focus-visible:ring-0"
           />
           <span style={{ fontSize: 11, color: '#555' }}>mm</span>
         </div>
