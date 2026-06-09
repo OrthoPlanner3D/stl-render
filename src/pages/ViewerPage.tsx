@@ -1,13 +1,13 @@
 import { useState, useRef, useEffect } from 'react'
-import { useBreakpoint } from './hooks/useBreakpoint'
-import { MAXILLARY, MANDIBULAR } from './data/stlAssets'
-import StlViewer from './components/StlViewer'
-import DentalPanel from './components/DentalPanel'
-import BottomBar from './components/BottomBar'
-import ViewPresets from './components/ViewPresets'
-import PatientInfo from './components/PatientInfo'
+import { useBreakpoint } from '../hooks/useBreakpoint'
+import { MAXILLARY, MANDIBULAR } from '../data/stlAssets'
+import StlViewer from '../components/StlViewer'
+import DentalPanel from '../components/DentalPanel'
+import BottomBar from '../components/BottomBar'
+import ViewPresets from '../components/ViewPresets'
+import PatientInfo from '../components/PatientInfo'
 
-export default function App() {
+export default function ViewerPage() {
   const [index, setIndex] = useState(0)
   const [playing, setPlaying] = useState(false)
   const [showMax, setShowMax] = useState(true)

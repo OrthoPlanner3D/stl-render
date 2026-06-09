@@ -1,6 +1,6 @@
-import { useState } from 'react'
 import { Play, Pause, Eye, EyeOff, Focus } from 'lucide-react'
-import { btnBase } from '../../styles/ui'
+import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
 import StepPanel from './StepPanel'
 import { MAXILLARY, MANDIBULAR } from '../../data/stlAssets'
 
@@ -22,19 +22,18 @@ export default function BottomBar({
   index, total, playing, showMax, showMan, isMobile,
   onTogglePlay, onToggleMax, onToggleMan, onFocus, onSelectFrame,
 }: BottomBarProps) {
-  const [hoverPlay, setHoverPlay] = useState(false)
-  const [hoverMax, setHoverMax] = useState(false)
-  const [hoverMan, setHoverMan] = useState(false)
-  const [hoverFocus, setHoverFocus] = useState(false)
   const progress = index / (total - 1)
 
   return (
-    <div style={{
-      position: 'absolute', bottom: 0, left: 0, right: 0,
-      background: 'rgba(0,0,0,0.72)', backdropFilter: 'blur(16px)',
-      borderTop: '1px solid rgba(255,255,255,0.05)',
-      zIndex: 20, pointerEvents: 'none', display: 'flex', flexDirection: 'column',
-    }}>
+    <div
+      className="dark"
+      style={{
+        position: 'absolute', bottom: 0, left: 0, right: 0,
+        background: 'rgba(0,0,0,0.72)', backdropFilter: 'blur(16px)',
+        borderTop: '1px solid rgba(255,255,255,0.05)',
+        zIndex: 20, pointerEvents: 'none', display: 'flex', flexDirection: 'column',
+      }}
+    >
       {/* Controls row */}
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -47,75 +46,50 @@ export default function BottomBar({
         </div>
 
         {/* Maxilar visibility */}
-        <button
+        <Button
+          variant="secondary"
+          size={isMobile ? 'icon' : 'sm'}
           onClick={onToggleMax}
-          onMouseEnter={() => setHoverMax(true)}
-          onMouseLeave={() => setHoverMax(false)}
-          style={{
-            ...btnBase, padding: isMobile ? '8px' : '8px 16px',
-            color: showMax ? (hoverMax ? '#ccc' : '#777') : (hoverMax ? '#555' : '#333'),
-            background: hoverMax ? 'rgba(30,30,30,0.9)' : btnBase.background,
-            borderColor: showMax ? (hoverMax ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.12)') : 'rgba(255,255,255,0.06)',
-          }}
+          className={cn(!showMax && 'opacity-50')}
         >
-          {showMax ? <Eye size={14} strokeWidth={1.5} /> : <EyeOff size={14} strokeWidth={1.5} />}
+          {showMax ? <Eye className="size-3.5" /> : <EyeOff className="size-3.5" />}
           {!isMobile && 'Maxilar'}
-        </button>
+        </Button>
 
         {/* Play */}
-        <button
+        <Button
+          variant={playing ? 'destructive' : 'default'}
+          size="icon"
           onClick={onTogglePlay}
-          onMouseEnter={() => setHoverPlay(true)}
-          onMouseLeave={() => setHoverPlay(false)}
-          style={{
-            width: 48, height: 48, borderRadius: '50%',
-            border: '1px solid rgba(255,255,255,0.12)',
-            background: playing
-              ? (hoverPlay ? 'rgba(180,50,50,0.85)' : 'rgba(150,40,40,0.8)')
-              : (hoverPlay ? 'rgba(30,30,30,0.9)' : 'rgba(10,10,10,0.75)'),
-            color: playing ? '#e07070' : (hoverPlay ? '#ccc' : '#999'),
-            cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-            transition: 'all 0.2s', backdropFilter: 'blur(12px)',
-            transform: hoverPlay ? 'scale(1.08)' : 'scale(1)', pointerEvents: 'auto',
-          }}
+          className="rounded-full size-10"
         >
-          {playing ? <Pause size={18} strokeWidth={1.5} /> : <Play size={18} strokeWidth={1.5} style={{ marginLeft: 2 }} />}
-        </button>
+          {playing ? <Pause className="size-4" /> : <Play className="size-4 ml-0.5" />}
+        </Button>
 
         {/* Mandibular visibility */}
-        <button
+        <Button
+          variant="secondary"
+          size={isMobile ? 'icon' : 'sm'}
           onClick={onToggleMan}
-          onMouseEnter={() => setHoverMan(true)}
-          onMouseLeave={() => setHoverMan(false)}
-          style={{
-            ...btnBase, padding: isMobile ? '8px' : '8px 16px',
-            color: showMan ? (hoverMan ? '#ccc' : '#777') : (hoverMan ? '#555' : '#333'),
-            background: hoverMan ? 'rgba(30,30,30,0.9)' : btnBase.background,
-            borderColor: showMan ? (hoverMan ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.12)') : 'rgba(255,255,255,0.06)',
-          }}
+          className={cn(!showMan && 'opacity-50')}
         >
-          {showMan ? <Eye size={14} strokeWidth={1.5} /> : <EyeOff size={14} strokeWidth={1.5} />}
+          {showMan ? <Eye className="size-3.5" /> : <EyeOff className="size-3.5" />}
           {!isMobile && 'Mandibular'}
-        </button>
+        </Button>
 
         {/* Focus */}
-        <button
+        <Button
+          variant="secondary"
+          size={isMobile ? 'icon' : 'sm'}
           onClick={onFocus}
-          onMouseEnter={() => setHoverFocus(true)}
-          onMouseLeave={() => setHoverFocus(false)}
           title="Volver a posición inicial"
-          style={{
-            ...btnBase, padding: isMobile ? '8px' : '8px 12px',
-            color: hoverFocus ? '#ccc' : '#777',
-            background: hoverFocus ? 'rgba(30,30,30,0.9)' : btnBase.background,
-          }}
         >
-          <Focus size={14} strokeWidth={1.5} />
+          <Focus className="size-3.5" />
           {!isMobile && 'Focus'}
-        </button>
+        </Button>
 
         {/* Step counter */}
-        <span style={{ fontSize: 10, color: '#444', letterSpacing: '0.08em', fontVariantNumeric: 'tabular-nums', flexShrink: 0 }}>
+        <span style={{ fontSize: 10, color: '#999', letterSpacing: '0.08em', fontVariantNumeric: 'tabular-nums', flexShrink: 0 }}>
           {MAXILLARY.names[index]} / {MAXILLARY.names[total - 1]}
         </span>
       </div>

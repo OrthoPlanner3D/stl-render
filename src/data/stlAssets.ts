@@ -57,7 +57,7 @@ export const MAXILLARY = {
     glb_max_12, glb_max_13, glb_max_14, glb_max_15, glb_max_16,
     glb_max_17, glb_max_18,
   ],
-  names: ['1', '1+', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17', '18'],
+  names: ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19'],
   filenames: [
     '1Maxillary.glb', '1Maxillary_with_attachments.glb',
     '2Maxillary.glb', '3Maxillary.glb', '4Maxillary.glb', '5Maxillary.glb', '6Maxillary.glb',
@@ -76,7 +76,7 @@ export const MANDIBULAR = {
     glb_man_12, glb_man_13, glb_man_14, glb_man_15, glb_man_16,
     glb_man_17, glb_man_18,
   ],
-  names: ['1', '1+', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17', '18'],
+  names: ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19'],
   filenames: [
     '1Mandibular.glb', '1Mandibular_with_attachments.glb',
     '2Mandibular.glb', '3Mandibular.glb', '4Mandibular.glb', '5Mandibular.glb', '6Mandibular.glb',
