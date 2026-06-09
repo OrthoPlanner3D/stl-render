@@ -25,24 +25,18 @@ export default function BottomBar({
   const progress = index / (total - 1)
 
   return (
-    <div
-      className="dark"
-      style={{
-        position: 'absolute', bottom: 0, left: 0, right: 0,
-        background: 'rgba(0,0,0,0.72)', backdropFilter: 'blur(16px)',
-        borderTop: '1px solid rgba(255,255,255,0.05)',
-        zIndex: 20, pointerEvents: 'none', display: 'flex', flexDirection: 'column',
-      }}
-    >
+    <div className="dark absolute bottom-0 left-0 right-0 bg-black/70 backdrop-blur-lg border-t border-white/5 z-20 pointer-events-none flex flex-col">
       {/* Controls row */}
-      <div style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        gap: isMobile ? 6 : 10, padding: isMobile ? '10px 12px 6px' : '12px 16px 8px',
-        pointerEvents: 'auto',
-      }}>
+      <div className={cn(
+        'flex items-center justify-center pointer-events-auto',
+        isMobile ? 'gap-1.5 pt-2.5 px-3 pb-1.5' : 'gap-2.5 pt-3 px-4 pb-2',
+      )}>
         {/* Progress track */}
-        <div style={{ width: isMobile ? 60 : 100, height: 2, borderRadius: 1, background: 'rgba(255,255,255,0.08)', overflow: 'hidden', flexShrink: 0 }}>
-          <div style={{ height: '100%', width: `${progress * 100}%`, background: 'rgba(255,255,255,0.35)', borderRadius: 1, transition: 'width 0.05s linear' }} />
+        <div className={cn('h-0.5 rounded-[1px] bg-white/[0.08] overflow-hidden shrink-0', isMobile ? 'w-[60px]' : 'w-[100px]')}>
+          <div
+            className="h-full bg-white/35 rounded-[1px] transition-[width] duration-[50ms] linear"
+            style={{ width: `${progress * 100}%` }}
+          />
         </div>
 
         {/* Maxilar visibility */}
@@ -89,20 +83,20 @@ export default function BottomBar({
         </Button>
 
         {/* Step counter */}
-        <span style={{ fontSize: 10, color: '#999', letterSpacing: '0.08em', fontVariantNumeric: 'tabular-nums', flexShrink: 0 }}>
+        <span className="text-[10px] text-[#999] tracking-[0.08em] tabular-nums shrink-0">
           {MAXILLARY.names[index]} / {MAXILLARY.names[total - 1]}
         </span>
       </div>
 
-      <div style={{ height: 1, background: 'rgba(255,255,255,0.05)', margin: '0 12px' }} />
+      <div className="h-px bg-white/5 mx-3" />
 
       {/* Frame strips */}
-      <div style={{ pointerEvents: 'auto' }}>
+      <div className="pointer-events-auto">
         <StepPanel
           label="Maxilar" names={MAXILLARY.names} filenames={MAXILLARY.filenames}
           index={index} visible={showMax} onSelect={onSelectFrame} isMobile={isMobile}
         />
-        <div style={{ height: 1, background: 'rgba(255,255,255,0.04)', margin: '0 12px' }} />
+        <div className="h-px bg-white/[0.04] mx-3" />
         <StepPanel
           label="Mandibular" names={MANDIBULAR.names} filenames={MANDIBULAR.filenames}
           index={index} visible={showMan} onSelect={onSelectFrame} isMobile={isMobile}

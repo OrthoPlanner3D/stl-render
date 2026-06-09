@@ -13,14 +13,15 @@ interface StepPanelProps {
 
 export default function StepPanel({ label, names, filenames, index, visible, onSelect, isMobile }: StepPanelProps) {
   return (
-    <div className="dark" style={{ display: 'flex', alignItems: 'center', gap: 8, padding: isMobile ? '4px 10px' : '6px 16px' }}>
-      <span style={{
-        fontSize: 9, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase',
-        color: visible ? '#666' : '#333', width: isMobile ? 64 : 76, flexShrink: 0, transition: 'color 0.2s',
-      }}>
+    <div className={cn('dark flex items-center gap-2', isMobile ? 'py-1 px-2.5' : 'py-1.5 px-4')}>
+      <span className={cn(
+        'text-[9px] font-semibold tracking-[0.12em] uppercase shrink-0 transition-colors duration-200',
+        visible ? 'text-[#666]' : 'text-[#333]',
+        isMobile ? 'w-16' : 'w-[76px]',
+      )}>
         {label}
       </span>
-      <div style={{ display: 'flex', gap: 4, overflowX: 'auto', flex: 1, padding: '2px 2px', scrollbarWidth: 'none' }}>
+      <div className="flex gap-1 overflow-x-auto flex-1 p-0.5 [scrollbar-width:none]">
         {names.map((name, i) => {
           const isActive = i === index
           const isPast = i < index

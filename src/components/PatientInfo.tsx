@@ -1,20 +1,31 @@
+import { cn } from '@/lib/utils'
+
 interface PatientInfoProps {
   isMobile: boolean
 }
 
 export default function PatientInfo({ isMobile }: PatientInfoProps) {
   return (
-    <div style={{
-      position: 'absolute', top: isMobile ? 12 : 24, left: isMobile ? 12 : 24,
-      zIndex: 10, pointerEvents: 'none', display: 'flex', flexDirection: 'column',
-      gap: isMobile ? 8 : 12,
-    }}>
-      <img src="/assets/logo-white.png" alt="Logo" style={{ height: isMobile ? 36 : 72, opacity: 0.9 }} />
-      <div style={{ paddingLeft: 2 }}>
-        <div style={{ fontSize: isMobile ? 8 : 9, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#666', marginBottom: 3 }}>
+    <div className={cn(
+      'absolute z-10 pointer-events-none flex flex-col',
+      isMobile ? 'top-3 left-3 gap-2' : 'top-6 left-6 gap-3',
+    )}>
+      <img
+        src="/assets/logo-white.png"
+        alt="Logo"
+        className={cn('opacity-90', isMobile ? 'h-9' : 'h-[72px]')}
+      />
+      <div className="pl-0.5">
+        <div className={cn(
+          'tracking-[0.14em] uppercase text-[#666] mb-0.5',
+          isMobile ? 'text-[8px]' : 'text-[9px]',
+        )}>
           Paciente
         </div>
-        <div style={{ fontSize: isMobile ? 12 : 15, fontWeight: 600, color: '#e0e0e0', letterSpacing: '0.02em' }}>
+        <div className={cn(
+          'font-semibold text-[#e0e0e0] tracking-[0.02em]',
+          isMobile ? 'text-xs' : 'text-[15px]',
+        )}>
           John Wick
         </div>
       </div>

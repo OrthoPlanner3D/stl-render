@@ -121,10 +121,13 @@
   * {
     @apply border-border outline-ring/50;
     }
-  body {
-    @apply bg-background text-foreground;
-    }
   html {
     @apply font-sans;
+    }
+  body {
+    @apply bg-background text-foreground overflow-hidden m-0;
+    }
+  #root {
+    @apply w-full h-screen overflow-hidden;
     }
 }

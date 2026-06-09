@@ -34,12 +34,9 @@ export default function ViewerPage() {
   }, [playing, total])
 
   return (
-    <div style={{
-      width: '100%', height: '100vh', background: '#000',
-      fontFamily: 'system-ui, sans-serif', overflow: 'hidden', display: 'flex',
-    }}>
+    <div className="w-full h-screen bg-black font-sans overflow-hidden flex">
       {/* 70% — Visor 3D + controles */}
-      <div style={{ flex: 1, height: '100vh', position: 'relative' }}>
+      <div className="flex-1 h-screen relative">
         <StlViewer
           maxUrl={MAXILLARY.stls[index]}
           manUrl={MANDIBULAR.stls[index]}

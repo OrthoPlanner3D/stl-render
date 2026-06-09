@@ -1,7 +1,6 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { createBrowserRouter, RouterProvider, Navigate } from 'react-router-dom'
-import './index.css'
 import './styles/index.css'
 import ViewerPage from './pages/ViewerPage.tsx'
 import LoginPage from './pages/LoginPage.tsx'

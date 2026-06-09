@@ -41,7 +41,7 @@ export default function DentalArch({ archKey, cx, cy, flip, spacings, onContactC
         const contactAngle = flip ? -midAngle : midAngle
 
         return (
-          <g key={id} style={{ cursor: 'pointer' }} onClick={(e) => { e.stopPropagation(); onContactClick(id, e) }}>
+          <g key={id} className="cursor-pointer" onClick={(e) => { e.stopPropagation(); onContactClick(id, e) }}>
             <rect
               x={mx - 8} y={my - 8} width={16} height={16}
               fill="transparent"

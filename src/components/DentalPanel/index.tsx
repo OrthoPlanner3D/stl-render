@@ -41,36 +41,27 @@ export default function DentalPanel() {
       ref={panelRef}
       className="dark relative flex h-full w-full flex-col justify-center px-5 py-6 pointer-events-auto"
     >
-      <div style={{ fontSize: 9, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#444', marginBottom: 6 }}>
+      <div className="text-[9px] tracking-[0.14em] uppercase text-[#444] mb-1.5">
         Maxilar
       </div>
-      <svg viewBox="0 0 200 90" width="100%" style={{ display: 'block', overflow: 'visible' }}>
+      <svg viewBox="0 0 200 90" width="100%" className="block overflow-visible">
         <DentalArch archKey="max" cx={100} cy={5} flip={false} spacings={spacings} onContactClick={handleContactClick} />
       </svg>
 
       <Separator className="my-4" />
 
-      <div style={{ fontSize: 9, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#444', marginBottom: 6 }}>
+      <div className="text-[9px] tracking-[0.14em] uppercase text-[#444] mb-1.5">
         Mandibular
       </div>
-      <svg viewBox="0 0 200 90" width="100%" style={{ display: 'block', overflow: 'visible' }}>
+      <svg viewBox="0 0 200 90" width="100%" className="block overflow-visible">
         <DentalArch archKey="man" cx={100} cy={85} flip={true} spacings={spacings} onContactClick={handleContactClick} />
       </svg>
 
       {pendingContact && pendingInputPos && (
-        <div style={{
-          position: 'absolute',
-          left: pendingInputPos.x + 8,
-          top: pendingInputPos.y - 14,
-          zIndex: 30,
-          background: 'rgba(10,10,10,0.95)',
-          border: '1px solid rgba(255,200,100,0.35)',
-          borderRadius: 5,
-          padding: '3px 6px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: 4,
-        }}>
+        <div
+          className="absolute z-30 bg-[rgba(10,10,10,0.95)] border border-[rgba(255,200,100,0.35)] rounded-[5px] px-1.5 py-0.5 flex items-center gap-1"
+          style={{ left: pendingInputPos.x + 8, top: pendingInputPos.y - 14 }}
+        >
           <Input
             autoFocus
             type="number"
@@ -87,7 +78,7 @@ export default function DentalPanel() {
             onBlur={commitSpacing}
             className="h-6 w-[50px] border-none bg-transparent p-0 text-[13px] text-[#ffc864] focus-visible:ring-0"
           />
-          <span style={{ fontSize: 11, color: '#555' }}>mm</span>
+          <span className="text-[11px] text-[#555]">mm</span>
         </div>
       )}
     </div>

@@ -16,12 +16,7 @@ interface ViewPresetsProps {
 export default function ViewPresets({ onView }: ViewPresetsProps) {
   return (
     <div
-      className="dark"
-      style={{
-        position: 'absolute', right: 20, top: '50%', transform: 'translateY(-50%)',
-        display: 'grid', gridTemplateColumns: 'repeat(3, 30px)', gridTemplateRows: 'repeat(3, 30px)',
-        gap: 4, zIndex: 20, pointerEvents: 'auto',
-      }}
+      className="dark absolute right-5 top-1/2 -translate-y-1/2 grid gap-1 z-20 pointer-events-auto [grid-template-columns:repeat(3,30px)] [grid-template-rows:repeat(3,30px)]"
     >
       {PRESET_VIEWS.map(({ title, icon, dir, col, row }) => (
         <Button
