@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
+import { LoaderCircle } from 'lucide-react'
 import { useBreakpoint } from '../hooks/useBreakpoint'
 import { useStlArches } from '../hooks/useStlArches'
 import StlViewer from '../components/StlViewer'
@@ -36,8 +37,8 @@ export default function ViewerPage() {
 
   if (loading) {
     return (
-      <div className="w-full h-screen bg-black flex items-center justify-center text-white/60 text-sm">
-        Cargando modelos…
+      <div className="w-full h-screen bg-black flex items-center justify-center">
+        <LoaderCircle className="h-8 w-8 animate-spin text-white/60" />
       </div>
     )
   }
