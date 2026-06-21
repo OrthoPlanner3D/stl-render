@@ -1,8 +1,6 @@
 import { useState, useRef } from 'react'
 import type { FormEvent, ChangeEvent } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { FileIcon, X, Upload, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react'
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -16,8 +14,13 @@ function formatBytes(bytes: number): string {
 
 type FileStatus = 'idle' | 'uploading' | 'done' | 'error'
 
-export default function UploadPage() {
-  const navigate = useNavigate()
+/**
+ * Sección de carga para un arco (maxilar o mandibular). Mantiene su propio
+ * estado, de modo que cada arco se selecciona y sube de forma independiente,
+ * pero ambas secciones comparten el mismo cliente `uploadStlFiles` (mismo
+ * endpoint).
+ */
+function ArchUploadSection({ title }: { title: string }) {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [files, setFiles] = useState<File[]>([])
   const [status, setStatus] = useState<Record<string, FileStatus>>({})
@@ -38,11 +41,21 @@ export default function UploadPage() {
     setFiles(prev => prev.filter(f => f.name !== name))
   }
 
+  function reset() {
+    setResults(null)
+    setStatus({})
+    setFiles([])
+  }
+
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
     setUploading(true)
     setStatus(Object.fromEntries(files.map(f => [f.name, 'uploading' as FileStatus])))
 
+    // TODO(nomenclatura): cuando la clienta defina la convención de nombres por
+    // arco, normalizar/validar acá los nombres (que contengan "Maxillary" /
+    // "Mandibular" según `title`) antes de subir. El visor categoriza por nombre
+    // de archivo — ver src/data/stlAssets.ts.
     const res = await uploadStlFiles(files, {
       concurrency: 4,
       onResult: r =>
@@ -53,167 +66,140 @@ export default function UploadPage() {
     setUploading(false)
   }
 
-  // Pantalla de resultados
-  if (results) {
-    const ok = results.filter(r => !r.error)
-    const failed = results.filter(r => r.error)
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background p-4">
-        <Card className="w-full max-w-md flex flex-col max-h-[90vh]">
-          <CardHeader className="text-center shrink-0">
-            <div className="flex justify-center mb-2">
-              {failed.length === 0 ? (
-                <CheckCircle2 className="h-12 w-12 text-green-500" />
-              ) : (
-                <AlertCircle className="h-12 w-12 text-amber-500" />
-              )}
-            </div>
-            <CardTitle>{failed.length === 0 ? 'Conversión completa' : 'Terminado con errores'}</CardTitle>
-            <CardDescription>
-              {ok.length} convertido{ok.length !== 1 ? 's' : ''} a GLB
-              {failed.length > 0 && ` · ${failed.length} con error`}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="overflow-y-auto flex-1">
-            <ul className="space-y-2">
-              {results.map(r => (
-                <li key={r.originalName} className="flex items-center gap-2 text-sm">
-                  {r.error ? (
-                    <AlertCircle className="h-4 w-4 shrink-0 text-destructive" />
-                  ) : (
-                    <CheckCircle2 className="h-4 w-4 shrink-0 text-green-500" />
-                  )}
-                  <span className="truncate flex-1">{r.error ? r.originalName : r.storedPath}</span>
-                  {r.error ? (
-                    <span className="text-xs text-destructive truncate max-w-[45%]" title={r.error}>{r.error}</span>
-                  ) : (
-                    <Badge variant="secondary" className="shrink-0">{formatBytes(r.size ?? 0)}</Badge>
-                  )}
-                </li>
-              ))}
-            </ul>
-          </CardContent>
-          <CardFooter className="flex flex-col gap-2 shrink-0">
-            <Button className="w-full" onClick={() => navigate('/app')}>
-              Ir al visor
-            </Button>
-            <Button
-              variant="ghost"
-              className="w-full"
-              onClick={() => { setResults(null); setStatus({}); setFiles([]) }}
-            >
-              Subir otro caso
-            </Button>
-          </CardFooter>
-        </Card>
-      </div>
-    )
-  }
+  const ok = results?.filter(r => !r.error).length ?? 0
+  const failed = results?.filter(r => r.error).length ?? 0
+  const totalBytes = files.reduce((sum, f) => sum + f.size, 0)
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-md flex flex-col max-h-[90vh]">
-        <CardHeader className="shrink-0">
-          <div className="flex items-center gap-2 mb-1">
-            <Upload className="h-5 w-5 text-muted-foreground" />
-            <CardTitle>Subir archivos STL</CardTitle>
+    <form
+      onSubmit={handleSubmit}
+      className="flex h-full min-h-0 flex-col gap-4 rounded-xl border bg-card/50 p-5"
+    >
+      <div className="flex items-center gap-2">
+        <Label className="text-lg font-semibold">{title}</Label>
+        {files.length > 0 && (
+          <>
+            <Badge variant="secondary">{files.length}</Badge>
+            <span className="ml-auto text-xs text-muted-foreground">
+              {formatBytes(totalBytes)}
+            </span>
+          </>
+        )}
+      </div>
+
+      {/* Selector de archivos */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        multiple
+        accept=".stl"
+        className="hidden"
+        onChange={handleFileChange}
+      />
+      <Button
+        type="button"
+        variant="outline"
+        className="w-full"
+        disabled={uploading || !!results}
+        onClick={() => fileInputRef.current?.click()}
+      >
+        <Upload className="h-4 w-4 mr-2" />
+        Seleccionar archivos
+      </Button>
+
+      {/* Área de lista (crece a todo el alto del panel) */}
+      <div className="flex-1 min-h-0 overflow-y-auto pr-1">
+        {files.length === 0 ? (
+          <div className="flex h-full min-h-[8rem] flex-col items-center justify-center gap-2 rounded-md border border-dashed text-center text-muted-foreground">
+            <FileIcon className="h-6 w-6 opacity-50" />
+            <p className="text-xs">Sin archivos seleccionados</p>
           </div>
-          <CardDescription>
-            Seleccioná los archivos del caso para convertir y cargar en OP3DViewer
-          </CardDescription>
-        </CardHeader>
+        ) : (
+          <ul className="space-y-1.5">
+            {files.map(f => {
+              const st = status[f.name] ?? 'idle'
+              return (
+                <li
+                  key={f.name}
+                  className="flex items-center gap-2 rounded-md border bg-background px-3 py-2 text-sm"
+                >
+                  {st === 'uploading' ? (
+                    <Loader2 className="h-4 w-4 shrink-0 animate-spin text-muted-foreground" />
+                  ) : st === 'done' ? (
+                    <CheckCircle2 className="h-4 w-4 shrink-0 text-green-500" />
+                  ) : st === 'error' ? (
+                    <AlertCircle className="h-4 w-4 shrink-0 text-destructive" />
+                  ) : (
+                    <FileIcon className="h-4 w-4 text-muted-foreground shrink-0" />
+                  )}
+                  <span className="truncate flex-1">{f.name}</span>
+                  <Badge variant="outline" className="shrink-0">{formatBytes(f.size)}</Badge>
+                  {!uploading && !results && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon-xs"
+                      onClick={() => removeFile(f.name)}
+                      className="shrink-0 text-muted-foreground hover:text-destructive"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </Button>
+                  )}
+                </li>
+              )
+            })}
+          </ul>
+        )}
+      </div>
 
-        <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
-          <CardContent className="flex flex-col gap-4 flex-1 min-h-0 overflow-hidden">
-            {/* Selector de archivos */}
-            <div className="space-y-2 shrink-0">
-              <Label>Archivos STL</Label>
-              <input
-                ref={fileInputRef}
-                type="file"
-                multiple
-                accept=".stl"
-                className="hidden"
-                onChange={handleFileChange}
-              />
-              <Button
-                type="button"
-                variant="outline"
-                className="w-full"
-                disabled={uploading}
-                onClick={() => fileInputRef.current?.click()}
-              >
-                <Upload className="h-4 w-4 mr-2" />
-                Seleccionar archivos
-              </Button>
-              <p className="text-xs text-muted-foreground">
-                Formato aceptado: .stl — podés seleccionar múltiples archivos
-              </p>
-            </div>
-
-            {/* Lista de archivos */}
-            {files.length > 0 && (
-              <div className="flex flex-col gap-2 flex-1 min-h-0">
-                <Label className="shrink-0">
-                  Archivos seleccionados
-                  <Badge variant="secondary" className="ml-2">{files.length}</Badge>
-                </Label>
-                <ul className="overflow-y-auto space-y-1.5 flex-1 pr-1">
-                  {files.map(f => {
-                    const st = status[f.name] ?? 'idle'
-                    return (
-                      <li
-                        key={f.name}
-                        className="flex items-center gap-2 rounded-md border px-3 py-2 text-sm"
-                      >
-                        {st === 'uploading' ? (
-                          <Loader2 className="h-4 w-4 shrink-0 animate-spin text-muted-foreground" />
-                        ) : st === 'done' ? (
-                          <CheckCircle2 className="h-4 w-4 shrink-0 text-green-500" />
-                        ) : st === 'error' ? (
-                          <AlertCircle className="h-4 w-4 shrink-0 text-destructive" />
-                        ) : (
-                          <FileIcon className="h-4 w-4 text-muted-foreground shrink-0" />
-                        )}
-                        <span className="truncate flex-1">{f.name}</span>
-                        <Badge variant="outline" className="shrink-0">{formatBytes(f.size)}</Badge>
-                        {!uploading && (
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon-xs"
-                            onClick={() => removeFile(f.name)}
-                            className="shrink-0 text-muted-foreground hover:text-destructive"
-                          >
-                            <X className="h-3.5 w-3.5" />
-                          </Button>
-                        )}
-                      </li>
-                    )
-                  })}
-                </ul>
-              </div>
-            )}
-          </CardContent>
-
-          <CardFooter className="shrink-0 pt-4">
-            <Button
-              type="submit"
-              className="w-full"
-              disabled={files.length === 0 || uploading}
-            >
-              {uploading ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Subiendo y convirtiendo…
-                </>
-              ) : (
-                `Subir ${files.length > 0 ? `${files.length} archivo${files.length !== 1 ? 's' : ''}` : 'archivos'}`
-              )}
+      {/* Resumen / acción de la sección (anclado al pie del panel) */}
+      <div className="mt-auto">
+        {results ? (
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-sm text-muted-foreground">
+              {ok} convertido{ok !== 1 ? 's' : ''} a GLB
+              {failed > 0 && ` · ${failed} con error`}
+            </p>
+            <Button type="button" variant="ghost" size="sm" onClick={reset}>
+              Subir otros
             </Button>
-          </CardFooter>
-        </form>
-      </Card>
+          </div>
+        ) : (
+          <Button type="submit" className="w-full" disabled={files.length === 0 || uploading}>
+            {uploading ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Subiendo y convirtiendo…
+              </>
+            ) : (
+              `Subir ${title.toLowerCase()}${files.length > 0 ? ` (${files.length})` : ''}`
+            )}
+          </Button>
+        )}
+      </div>
+    </form>
+  )
+}
+
+export default function UploadPage() {
+  return (
+    <div className="h-screen flex flex-col bg-background">
+      <header className="shrink-0 border-b px-6 py-4">
+        <div className="flex items-center gap-2">
+          <Upload className="h-5 w-5 text-muted-foreground" />
+          <h1 className="text-xl font-semibold">Subir archivos STL</h1>
+        </div>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Seleccioná los archivos del caso para convertir y cargar en OP3DViewer
+        </p>
+      </header>
+
+      <main className="flex-1 min-h-0 overflow-y-auto p-6">
+        <div className="grid h-full grid-cols-1 gap-6 lg:grid-cols-2">
+          <ArchUploadSection title="Maxilares" />
+          <ArchUploadSection title="Mandibulares" />
+        </div>
+      </main>
     </div>
   )
 }
