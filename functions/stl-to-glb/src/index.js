@@ -16,12 +16,37 @@ const path = require('node:path')
 const { http } = require('@google-cloud/functions-framework')
 const Busboy = require('busboy')
 
+const config = require('./config')
 const { convertStlToCompressedGlb } = require('./convert')
 const { uploadToSupabase, listSignedGlbUrls } = require('./supabase')
 
-const MAX_FILE_BYTES = 50 * 1024 * 1024 // 50MB por archivo
-const MAX_TOTAL_BYTES = 200 * 1024 * 1024 // 200MB por request
-const SIGNED_URL_TTL = 6 * 60 * 60 // 6h de validez para las URLs firmadas
+/** Mensaje de error legible, venga un Error o cualquier otra cosa. */
+function errorMessage(err) {
+  return err instanceof Error ? err.message : String(err)
+}
+
+/**
+ * Setea los headers CORS y responde el preflight OPTIONS.
+ * El front (browser) hace requests cross-origin con header x-api-key, lo que dispara
+ * un preflight. '*' alcanza por ahora porque el acceso lo gatea la api-key; cuando se
+ * defina la auth real conviene restringir el origin.
+ * @returns {boolean} true si ya respondió el preflight (el handler debe cortar).
+ */
+function applyCors(req, res) {
+  res.set('Access-Control-Allow-Origin', '*')
+  if (req.method !== 'OPTIONS') return false
+  res.set('Access-Control-Allow-Methods', 'GET, POST')
+  res.set('Access-Control-Allow-Headers', 'Content-Type, x-api-key')
+  res.set('Access-Control-Max-Age', '3600')
+  res.status(204).send('')
+  return true
+}
+
+/** ¿El request trae la api-key correcta? */
+function isAuthorized(req) {
+  const expected = config.apiKey()
+  return Boolean(expected) && req.get('x-api-key') === expected
+}
 
 /**
  * Parsea el multipart del request en archivos { filename, data }.
@@ -30,7 +55,7 @@ const SIGNED_URL_TTL = 6 * 60 * 60 // 6h de validez para las URLs firmadas
  */
 function parseMultipart(req) {
   return new Promise((resolve, reject) => {
-    const bb = Busboy({ headers: req.headers, limits: { fileSize: MAX_FILE_BYTES } })
+    const bb = Busboy({ headers: req.headers, limits: { fileSize: config.MAX_FILE_BYTES } })
     const files = []
     let total = 0
     let failed = null
@@ -39,11 +64,11 @@ function parseMultipart(req) {
       const chunks = []
       stream.on('data', (chunk) => {
         total += chunk.length
-        if (total > MAX_TOTAL_BYTES) failed = new Error('total upload too large')
+        if (total > config.MAX_TOTAL_BYTES) failed = new Error('total upload too large')
         chunks.push(chunk)
       })
       stream.on('limit', () => {
-        failed = new Error(`archivo "${info.filename}" excede ${MAX_FILE_BYTES} bytes`)
+        failed = new Error(`archivo "${info.filename}" excede ${config.MAX_FILE_BYTES} bytes`)
       })
       stream.on('end', () => {
         files.push({ filename: info.filename, data: Buffer.concat(chunks) })
@@ -58,46 +83,23 @@ function parseMultipart(req) {
   })
 }
 
-http('stlToGlb', async (req, res) => {
-  // CORS: el front (browser) hace requests cross-origin con header x-api-key,
-  // lo que dispara un preflight OPTIONS. '*' alcanza por ahora porque el acceso
-  // lo gatea la api-key; cuando se defina la auth real conviene restringir el origin.
-  res.set('Access-Control-Allow-Origin', '*')
-  if (req.method === 'OPTIONS') {
-    res.set('Access-Control-Allow-Methods', 'GET, POST')
-    res.set('Access-Control-Allow-Headers', 'Content-Type, x-api-key')
-    res.set('Access-Control-Max-Age', '3600')
-    res.status(204).send('')
-    return
+/** GET → lista los .glb del bucket con signed URLs (para que el viewer los lea). */
+async function handleList(res) {
+  try {
+    const files = await listSignedGlbUrls(config.SIGNED_URL_TTL)
+    res.status(200).json({ files })
+  } catch (err) {
+    res.status(500).json({ error: errorMessage(err) })
   }
+}
 
-  if (req.method !== 'POST' && req.method !== 'GET') {
-    res.status(405).json({ error: 'method not allowed' })
-    return
-  }
-
-  const expected = process.env.STL_API_KEY
-  if (!expected || req.get('x-api-key') !== expected) {
-    res.status(401).json({ error: 'unauthorized' })
-    return
-  }
-
-  // GET → listar los .glb del bucket con signed URLs (para que el viewer los lea).
-  if (req.method === 'GET') {
-    try {
-      const files = await listSignedGlbUrls(SIGNED_URL_TTL)
-      res.status(200).json({ files })
-    } catch (err) {
-      res.status(500).json({ error: err instanceof Error ? err.message : String(err) })
-    }
-    return
-  }
-
+/** POST → parsea el multipart, convierte cada .stl a .glb y lo sube a Supabase. */
+async function handleConvert(req, res) {
   let parsed
   try {
     parsed = await parseMultipart(req)
   } catch (err) {
-    res.status(400).json({ error: err instanceof Error ? err.message : String(err) })
+    res.status(400).json({ error: errorMessage(err) })
     return
   }
 
@@ -115,10 +117,27 @@ http('stlToGlb', async (req, res) => {
       await uploadToSupabase(storedPath, glb)
       results.push({ originalName, storedPath, size: glb.length })
     } catch (err) {
-      results.push({ originalName, error: err instanceof Error ? err.message : String(err) })
+      results.push({ originalName, error: errorMessage(err) })
     }
   }
 
   const status = results.some((r) => r.error) ? 207 : 200
   res.status(status).json({ files: results })
+}
+
+http('stlToGlb', async (req, res) => {
+  if (applyCors(req, res)) return
+
+  if (req.method !== 'POST' && req.method !== 'GET') {
+    res.status(405).json({ error: 'method not allowed' })
+    return
+  }
+
+  if (!isAuthorized(req)) {
+    res.status(401).json({ error: 'unauthorized' })
+    return
+  }
+
+  if (req.method === 'GET') return handleList(res)
+  return handleConvert(req, res)
 })

@@ -14,6 +14,7 @@ const { KHRDracoMeshCompression } = require('@gltf-transform/extensions')
 const { draco, weld } = require('@gltf-transform/functions')
 const draco3d = require('draco3dgltf')
 
+const { DRACO_QUANTIZE_POSITION } = require('./config')
 const { parseStlPositions } = require('./stl')
 
 // El encoder/decoder de Draco son WASM: se inicializan una sola vez y se reutilizan.
@@ -51,11 +52,8 @@ async function convertStlToCompressedGlb(stl) {
   doc.createScene().addChild(node)
 
   // weld(): indexa vértices duplicados (el STL es no indexado) → Draco comprime mucho mejor.
-  // draco(): aplica KHR_draco_mesh_compression.
-  // quantizePosition 11 ≈ 0.03mm de resolución sobre un modelo dental típico: más
-  // preciso que los GLB que ya se venían usando (~0.06mm) y ~1/3 más liviano que el
-  // default de 14 bits (que para mallas dentales es precisión de sobra y pesa el doble).
-  await doc.transform(weld(), draco({ quantizePosition: 11 }))
+  // draco(): aplica KHR_draco_mesh_compression (ver DRACO_QUANTIZE_POSITION en config.js).
+  await doc.transform(weld(), draco({ quantizePosition: DRACO_QUANTIZE_POSITION }))
 
   const io = new NodeIO()
     .registerExtensions([KHRDracoMeshCompression])

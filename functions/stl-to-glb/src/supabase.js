@@ -8,25 +8,21 @@
 
 const { createClient } = require('@supabase/supabase-js')
 
-const DEFAULT_BUCKET = 'glb-models'
+const { supabaseUrl, supabaseServiceKey, bucketName } = require('./config')
 
 /** @type {import('@supabase/supabase-js').SupabaseClient | null} */
 let client = null
 
 function getClient() {
   if (!client) {
-    const url = process.env.SUPABASE_URL
-    const key = process.env.SUPABASE_SERVICE_ROLE_KEY
+    const url = supabaseUrl()
+    const key = supabaseServiceKey()
     if (!url || !key) {
       throw new Error('Faltan SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY')
     }
     client = createClient(url, key)
   }
   return client
-}
-
-function bucketName() {
-  return process.env.SUPABASE_BUCKET || DEFAULT_BUCKET
 }
 
 /**
