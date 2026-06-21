@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { useBreakpoint } from '../hooks/useBreakpoint'
-import { MAXILLARY, MANDIBULAR } from '../data/stlAssets'
+import { useStlArches } from '../hooks/useStlArches'
 import StlViewer from '../components/StlViewer'
 import DentalPanel from '../components/DentalPanel'
 import BottomBar from '../components/BottomBar'
@@ -8,6 +8,7 @@ import ViewPresets from '../components/ViewPresets'
 import PatientInfo from '../components/PatientInfo'
 
 export default function ViewerPage() {
+  const { loading, error, maxillary, mandibular } = useStlArches()
   const [index, setIndex] = useState(0)
   const [playing, setPlaying] = useState(false)
   const [showMax, setShowMax] = useState(true)
@@ -15,7 +16,7 @@ export default function ViewerPage() {
   const { isMobile } = useBreakpoint()
   const focusFnRef = useRef<() => void>(() => {})
   const viewFnRef = useRef<(dir: [number, number, number]) => void>(() => {})
-  const total = MAXILLARY.stls.length
+  const total = maxillary?.stls.length ?? 0
 
   function togglePlay() {
     if (!playing && index === total - 1) setIndex(0)
@@ -33,13 +34,29 @@ export default function ViewerPage() {
     return () => clearInterval(id)
   }, [playing, total])
 
+  if (loading) {
+    return (
+      <div className="w-full h-screen bg-black flex items-center justify-center text-white/60 text-sm">
+        Cargando modelos…
+      </div>
+    )
+  }
+
+  if (error || !maxillary || !mandibular) {
+    return (
+      <div className="w-full h-screen bg-black flex items-center justify-center text-red-400 text-sm px-6 text-center">
+        No se pudieron cargar los modelos{error ? `: ${error}` : ''}
+      </div>
+    )
+  }
+
   return (
     <div className="w-full h-screen bg-black font-sans overflow-hidden flex">
       {/* 70% — Visor 3D + controles */}
       <div className="flex-1 h-screen relative">
         <StlViewer
-          maxUrl={MAXILLARY.stls[index]}
-          manUrl={MANDIBULAR.stls[index]}
+          maxUrl={maxillary.stls[index]}
+          manUrl={mandibular.stls[index]}
           showMax={showMax}
           showMan={showMan}
           focusFnRef={focusFnRef}
@@ -54,6 +71,8 @@ export default function ViewerPage() {
           showMax={showMax}
           showMan={showMan}
           isMobile={isMobile}
+          maxillary={maxillary}
+          mandibular={mandibular}
           onTogglePlay={togglePlay}
           onToggleMax={() => setShowMax(v => !v)}
           onToggleMan={() => setShowMan(v => !v)}

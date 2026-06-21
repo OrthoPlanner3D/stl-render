@@ -2,7 +2,7 @@ import { Play, Pause, Eye, EyeOff, Focus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import StepPanel from './StepPanel'
-import { MAXILLARY, MANDIBULAR } from '../../data/stlAssets'
+import type { ArchAssets } from '../../data/stlAssets'
 
 interface BottomBarProps {
   index: number
@@ -11,6 +11,8 @@ interface BottomBarProps {
   showMax: boolean
   showMan: boolean
   isMobile: boolean
+  maxillary: ArchAssets
+  mandibular: ArchAssets
   onTogglePlay: () => void
   onToggleMax: () => void
   onToggleMan: () => void
@@ -19,7 +21,7 @@ interface BottomBarProps {
 }
 
 export default function BottomBar({
-  index, total, playing, showMax, showMan, isMobile,
+  index, total, playing, showMax, showMan, isMobile, maxillary, mandibular,
   onTogglePlay, onToggleMax, onToggleMan, onFocus, onSelectFrame,
 }: BottomBarProps) {
   const progress = index / (total - 1)
@@ -84,7 +86,7 @@ export default function BottomBar({
 
         {/* Step counter */}
         <span className="text-[10px] text-[#999] tracking-[0.08em] tabular-nums shrink-0">
-          {MAXILLARY.names[index]} / {MAXILLARY.names[total - 1]}
+          {maxillary.names[index]} / {maxillary.names[total - 1]}
         </span>
       </div>
 
@@ -93,12 +95,12 @@ export default function BottomBar({
       {/* Frame strips */}
       <div className="pointer-events-auto">
         <StepPanel
-          label="Maxilar" names={MAXILLARY.names} filenames={MAXILLARY.filenames}
+          label="Maxilar" names={maxillary.names} filenames={maxillary.filenames}
           index={index} visible={showMax} onSelect={onSelectFrame} isMobile={isMobile}
         />
         <div className="h-px bg-white/[0.04] mx-3" />
         <StepPanel
-          label="Mandibular" names={MANDIBULAR.names} filenames={MANDIBULAR.filenames}
+          label="Mandibular" names={mandibular.names} filenames={mandibular.filenames}
           index={index} visible={showMan} onSelect={onSelectFrame} isMobile={isMobile}
         />
       </div>

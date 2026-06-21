@@ -1,0 +1,22 @@
+{
+  "name": "stl-to-glb",
+  "version": "1.0.0",
+  "description": "Cloud Function: STL -> GLB+Draco -> Supabase Storage",
+  "main": "src/index.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "functions-framework --target=stlToGlb",
+    "dev": "functions-framework --target=stlToGlb",
+    "upload": "node bulk-upload.mjs"
+  },
+  "dependencies": {
+    "@google-cloud/functions-framework": "^3.4.0",
+    "@gltf-transform/core": "^4.1.0",
+    "@gltf-transform/extensions": "^4.1.0",
+    "@gltf-transform/functions": "^4.1.0",
+    "@supabase/supabase-js": "^2.45.0",
+    "busboy": "^1.6.0",
+    "dotenv": "^16.4.0",
+    "draco3dgltf": "^1.5.7"
+  }
+}

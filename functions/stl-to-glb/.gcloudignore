@@ -1,0 +1,7 @@
+node_modules/
+.git/
+.env
+*.glb
+*.stl
+fixtures/
+npm-debug.log

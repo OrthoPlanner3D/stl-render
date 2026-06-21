@@ -1,11 +1,12 @@
 import { useState, useRef } from 'react'
 import type { FormEvent, ChangeEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { FileIcon, X, Upload, CheckCircle2 } from 'lucide-react'
+import { FileIcon, X, Upload, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { uploadStlFiles, type UploadResult } from '@/lib/uploadStl'
 
 function formatBytes(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`
@@ -13,11 +14,15 @@ function formatBytes(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
 }
 
+type FileStatus = 'idle' | 'uploading' | 'done' | 'error'
+
 export default function UploadPage() {
   const navigate = useNavigate()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [files, setFiles] = useState<File[]>([])
-  const [submitted, setSubmitted] = useState(false)
+  const [status, setStatus] = useState<Record<string, FileStatus>>({})
+  const [uploading, setUploading] = useState(false)
+  const [results, setResults] = useState<UploadResult[] | null>(null)
 
   function handleFileChange(e: ChangeEvent<HTMLInputElement>) {
     const selected = Array.from(e.target.files ?? [])
@@ -33,36 +38,57 @@ export default function UploadPage() {
     setFiles(prev => prev.filter(f => f.name !== name))
   }
 
-  function handleSubmit(e: FormEvent) {
+  async function handleSubmit(e: FormEvent) {
     e.preventDefault()
-    const payload = {
-      files: files.map(f => ({ name: f.name, size: f.size, type: f.type })),
-      timestamp: new Date().toISOString(),
-    }
-    console.log('[OP3DViewer] Upload payload:', payload)
-    setSubmitted(true)
+    setUploading(true)
+    setStatus(Object.fromEntries(files.map(f => [f.name, 'uploading' as FileStatus])))
+
+    const res = await uploadStlFiles(files, {
+      concurrency: 4,
+      onResult: r =>
+        setStatus(prev => ({ ...prev, [r.originalName]: r.error ? 'error' : 'done' })),
+    })
+
+    setResults(res)
+    setUploading(false)
   }
 
-  if (submitted) {
+  // Pantalla de resultados
+  if (results) {
+    const ok = results.filter(r => !r.error)
+    const failed = results.filter(r => r.error)
     return (
       <div className="min-h-screen flex items-center justify-center bg-background p-4">
         <Card className="w-full max-w-md flex flex-col max-h-[90vh]">
           <CardHeader className="text-center shrink-0">
             <div className="flex justify-center mb-2">
-              <CheckCircle2 className="h-12 w-12 text-green-500" />
+              {failed.length === 0 ? (
+                <CheckCircle2 className="h-12 w-12 text-green-500" />
+              ) : (
+                <AlertCircle className="h-12 w-12 text-amber-500" />
+              )}
             </div>
-            <CardTitle>Archivos listos</CardTitle>
+            <CardTitle>{failed.length === 0 ? 'Conversión completa' : 'Terminado con errores'}</CardTitle>
             <CardDescription>
-              {files.length} archivo{files.length !== 1 ? 's' : ''} cargado{files.length !== 1 ? 's' : ''} para el visor
+              {ok.length} convertido{ok.length !== 1 ? 's' : ''} a GLB
+              {failed.length > 0 && ` · ${failed.length} con error`}
             </CardDescription>
           </CardHeader>
           <CardContent className="overflow-y-auto flex-1">
             <ul className="space-y-2">
-              {files.map(f => (
-                <li key={f.name} className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <FileIcon className="h-4 w-4 shrink-0" />
-                  <span className="truncate">{f.name}</span>
-                  <Badge variant="secondary" className="ml-auto shrink-0">{formatBytes(f.size)}</Badge>
+              {results.map(r => (
+                <li key={r.originalName} className="flex items-center gap-2 text-sm">
+                  {r.error ? (
+                    <AlertCircle className="h-4 w-4 shrink-0 text-destructive" />
+                  ) : (
+                    <CheckCircle2 className="h-4 w-4 shrink-0 text-green-500" />
+                  )}
+                  <span className="truncate flex-1">{r.error ? r.originalName : r.storedPath}</span>
+                  {r.error ? (
+                    <span className="text-xs text-destructive truncate max-w-[45%]" title={r.error}>{r.error}</span>
+                  ) : (
+                    <Badge variant="secondary" className="shrink-0">{formatBytes(r.size ?? 0)}</Badge>
+                  )}
                 </li>
               ))}
             </ul>
@@ -71,11 +97,14 @@ export default function UploadPage() {
             <Button className="w-full" onClick={() => navigate('/app')}>
               Ir al visor
             </Button>
-            <Button variant="ghost" className="w-full" onClick={() => { setSubmitted(false); setFiles([]) }}>
+            <Button
+              variant="ghost"
+              className="w-full"
+              onClick={() => { setResults(null); setStatus({}); setFiles([]) }}
+            >
               Subir otro caso
             </Button>
           </CardFooter>
-
         </Card>
       </div>
     )
@@ -90,7 +119,7 @@ export default function UploadPage() {
             <CardTitle>Subir archivos STL</CardTitle>
           </div>
           <CardDescription>
-            Seleccioná los archivos del caso para cargar en OP3DViewer
+            Seleccioná los archivos del caso para convertir y cargar en OP3DViewer
           </CardDescription>
         </CardHeader>
 
@@ -98,12 +127,12 @@ export default function UploadPage() {
           <CardContent className="flex flex-col gap-4 flex-1 min-h-0 overflow-hidden">
             {/* Selector de archivos */}
             <div className="space-y-2 shrink-0">
-              <Label>Archivos STL / GLB</Label>
+              <Label>Archivos STL</Label>
               <input
                 ref={fileInputRef}
                 type="file"
                 multiple
-                accept=".stl,.glb"
+                accept=".stl"
                 className="hidden"
                 onChange={handleFileChange}
               />
@@ -111,13 +140,14 @@ export default function UploadPage() {
                 type="button"
                 variant="outline"
                 className="w-full"
+                disabled={uploading}
                 onClick={() => fileInputRef.current?.click()}
               >
                 <Upload className="h-4 w-4 mr-2" />
                 Seleccionar archivos
               </Button>
               <p className="text-xs text-muted-foreground">
-                Formatos aceptados: .stl, .glb — podés seleccionar múltiples archivos
+                Formato aceptado: .stl — podés seleccionar múltiples archivos
               </p>
             </div>
 
@@ -129,25 +159,38 @@ export default function UploadPage() {
                   <Badge variant="secondary" className="ml-2">{files.length}</Badge>
                 </Label>
                 <ul className="overflow-y-auto space-y-1.5 flex-1 pr-1">
-                  {files.map(f => (
-                    <li
-                      key={f.name}
-                      className="flex items-center gap-2 rounded-md border px-3 py-2 text-sm"
-                    >
-                      <FileIcon className="h-4 w-4 text-muted-foreground shrink-0" />
-                      <span className="truncate flex-1">{f.name}</span>
-                      <Badge variant="outline" className="shrink-0">{formatBytes(f.size)}</Badge>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon-xs"
-                        onClick={() => removeFile(f.name)}
-                        className="shrink-0 text-muted-foreground hover:text-destructive"
+                  {files.map(f => {
+                    const st = status[f.name] ?? 'idle'
+                    return (
+                      <li
+                        key={f.name}
+                        className="flex items-center gap-2 rounded-md border px-3 py-2 text-sm"
                       >
-                        <X className="h-3.5 w-3.5" />
-                      </Button>
-                    </li>
-                  ))}
+                        {st === 'uploading' ? (
+                          <Loader2 className="h-4 w-4 shrink-0 animate-spin text-muted-foreground" />
+                        ) : st === 'done' ? (
+                          <CheckCircle2 className="h-4 w-4 shrink-0 text-green-500" />
+                        ) : st === 'error' ? (
+                          <AlertCircle className="h-4 w-4 shrink-0 text-destructive" />
+                        ) : (
+                          <FileIcon className="h-4 w-4 text-muted-foreground shrink-0" />
+                        )}
+                        <span className="truncate flex-1">{f.name}</span>
+                        <Badge variant="outline" className="shrink-0">{formatBytes(f.size)}</Badge>
+                        {!uploading && (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon-xs"
+                            onClick={() => removeFile(f.name)}
+                            className="shrink-0 text-muted-foreground hover:text-destructive"
+                          >
+                            <X className="h-3.5 w-3.5" />
+                          </Button>
+                        )}
+                      </li>
+                    )
+                  })}
                 </ul>
               </div>
             )}
@@ -157,9 +200,16 @@ export default function UploadPage() {
             <Button
               type="submit"
               className="w-full"
-              disabled={files.length === 0}
+              disabled={files.length === 0 || uploading}
             >
-              Subir {files.length > 0 ? `${files.length} archivo${files.length !== 1 ? 's' : ''}` : 'archivos'}
+              {uploading ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Subiendo y convirtiendo…
+                </>
+              ) : (
+                `Subir ${files.length > 0 ? `${files.length} archivo${files.length !== 1 ? 's' : ''}` : 'archivos'}`
+              )}
             </Button>
           </CardFooter>
         </form>
