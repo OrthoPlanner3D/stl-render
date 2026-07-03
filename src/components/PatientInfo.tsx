@@ -2,9 +2,10 @@ import { cn } from '@/lib/utils'
 
 interface PatientInfoProps {
   isMobile: boolean
+  name: string | null
 }
 
-export default function PatientInfo({ isMobile }: PatientInfoProps) {
+export default function PatientInfo({ isMobile, name }: PatientInfoProps) {
   return (
     <div className={cn(
       'absolute z-10 pointer-events-none flex flex-col',
@@ -26,7 +27,7 @@ export default function PatientInfo({ isMobile }: PatientInfoProps) {
           'font-semibold text-[#e0e0e0] tracking-[0.02em]',
           isMobile ? 'text-xs' : 'text-[15px]',
         )}>
-          John Wick
+          {name ?? '—'}
         </div>
       </div>
     </div>

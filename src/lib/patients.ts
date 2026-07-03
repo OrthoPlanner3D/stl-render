@@ -29,3 +29,21 @@ export async function getPatients(): Promise<Patient[]> {
     lastName: (r.last_name as string) ?? '',
   }))
 }
+
+/** Trae un paciente por id, o null si no existe. */
+export async function getPatientById(id: number): Promise<Patient | null> {
+  const { data, error } = await supabase
+    .from('patients')
+    .select('id, name, last_name')
+    .eq('id', id)
+    .maybeSingle()
+
+  if (error) throw new Error(error.message)
+  if (!data) return null
+
+  return {
+    id: data.id as number,
+    name: (data.name as string) ?? '',
+    lastName: (data.last_name as string) ?? '',
+  }
+}

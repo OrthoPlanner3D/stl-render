@@ -37,6 +37,21 @@ export async function getLatestStoragePrefix(): Promise<string | null> {
   return (data?.storage_prefix as string | undefined) ?? null
 }
 
+/** Mapa patientId → storagePrefix del caso MÁS reciente. Un paciente por entrada; sin casos → ausente. */
+export async function getLatestPrefixByPatient(): Promise<Map<number, string>> {
+  const { data, error } = await supabase
+    .from('patient_models')
+    .select('patient_id, storage_prefix, created_at')
+    .order('created_at', { ascending: false })
+  if (error) throw new Error(error.message)
+  const map = new Map<number, string>()
+  for (const r of data ?? []) {
+    const pid = r.patient_id as number
+    if (!map.has(pid)) map.set(pid, r.storage_prefix as string) // primer visto = más reciente
+  }
+  return map
+}
+
 /** Historial de casos de un paciente, del más nuevo al más viejo. */
 export async function getCasesByPatient(patientId: number): Promise<PatientModelCase[]> {
   const { data, error } = await supabase

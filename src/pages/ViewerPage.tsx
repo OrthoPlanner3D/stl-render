@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom'
 import { LoaderCircle } from 'lucide-react'
 import { useBreakpoint } from '../hooks/useBreakpoint'
 import { useStlArches } from '../hooks/useStlArches'
+import { usePatientName } from '../hooks/usePatientName'
 import StlViewer from '../components/StlViewer'
 import DentalPanel from '../components/DentalPanel'
 import BottomBar from '../components/BottomBar'
@@ -12,7 +13,8 @@ import PatientInfo from '../components/PatientInfo'
 export default function ViewerPage() {
   const [searchParams] = useSearchParams()
   const storagePrefix = searchParams.get('prefix')
-  const { loading, error, maxillary, mandibular } = useStlArches(storagePrefix)
+  const { loading, error, maxillary, mandibular, prefix } = useStlArches(storagePrefix)
+  const patientName = usePatientName(prefix)
   const [index, setIndex] = useState(0)
   const [playing, setPlaying] = useState(false)
   const [showMax, setShowMax] = useState(true)
@@ -66,7 +68,7 @@ export default function ViewerPage() {
           focusFnRef={focusFnRef}
           viewFnRef={viewFnRef}
         />
-        <PatientInfo isMobile={isMobile} />
+        <PatientInfo isMobile={isMobile} name={patientName} />
         <ViewPresets onView={dir => viewFnRef.current(dir)} />
         <BottomBar
           index={index}

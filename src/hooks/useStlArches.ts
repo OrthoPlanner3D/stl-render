@@ -9,6 +9,8 @@ interface StlArchesState {
   error: string | null
   maxillary: ArchAssets | null
   mandibular: ArchAssets | null
+  /** Prefijo del caso efectivamente cargado (útil cuando se resolvió por fallback). */
+  prefix: string | null
 }
 
 /**
@@ -23,6 +25,7 @@ export function useStlArches(storagePrefix: string | null): StlArchesState {
     error: null,
     maxillary: null,
     mandibular: null,
+    prefix: null,
   })
 
   useEffect(() => {
@@ -35,18 +38,18 @@ export function useStlArches(storagePrefix: string | null): StlArchesState {
     prefixPromise
       .then(prefix => {
         if (!prefix) throw new Error('No hay ningún caso cargado todavía')
-        return fetchArches(prefix)
+        return fetchArches(prefix).then(arches => ({ prefix, ...arches }))
       })
-      .then(({ maxillary, mandibular }) => {
+      .then(({ prefix, maxillary, mandibular }) => {
         if (cancelled) return
         for (const url of [...maxillary.stls, ...mandibular.stls]) {
           useLoader.preload(GLTFLoader, url, extendGLTFLoader)
         }
-        setState({ loading: false, error: null, maxillary, mandibular })
+        setState({ loading: false, error: null, maxillary, mandibular, prefix })
       })
       .catch(err => {
         if (cancelled) return
-        setState({ loading: false, error: err instanceof Error ? err.message : String(err), maxillary: null, mandibular: null })
+        setState({ loading: false, error: err instanceof Error ? err.message : String(err), maxillary: null, mandibular: null, prefix: null })
       })
     return () => {
       cancelled = true
