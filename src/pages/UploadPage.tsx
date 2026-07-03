@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { uploadStlFiles, type UploadResult } from '@/lib/uploadStl'
 import { getPatients, patientLabel, type Patient } from '@/lib/patients'
-import { saveCaseSpacings } from '@/lib/patientModels'
+import { saveCaseSpacings, getCasesByPatient, getCaseSpacings } from '@/lib/patientModels'
 import DentalPanel from '@/components/DentalPanel'
 
 function formatBytes(bytes: number): string {
@@ -35,6 +35,17 @@ export default function UploadPage() {
   const [storagePrefix, setStoragePrefix] = useState<string | null>(null)
   // Spacings interproximales (mm) cargados a mano; opcionales, se persisten por caso.
   const [spacings, setSpacings] = useState<Record<string, string>>({})
+  // Ref siempre sincronizado al último `spacings`: evita leer un valor obsoleto en
+  // handleSubmit cuando el usuario tipea y aprieta "Subir" en el mismo gesto (el blur
+  // que confirma el valor recién impacta el estado, no el closure ya capturado).
+  const spacingsRef = useRef(spacings)
+  useEffect(() => { spacingsRef.current = spacings }, [spacings])
+  // Error del guardado de spacings (los STL sí se subieron); se muestra en resultados.
+  const [spacingsError, setSpacingsError] = useState<string | null>(null)
+  // Caso más reciente del paciente elegido: destino del guardado de spacings sin re-subir.
+  const [spacingTargetPrefix, setSpacingTargetPrefix] = useState<string | null>(null)
+  const [savingSpacings, setSavingSpacings] = useState(false)
+  const [spacingsSaved, setSpacingsSaved] = useState(false)
 
   useEffect(() => {
     let active = true
@@ -45,7 +56,44 @@ export default function UploadPage() {
     return () => { active = false }
   }, [])
 
+  // Al elegir paciente, ubicamos su caso más reciente y precargamos sus spacings actuales.
+  // Precargar es obligatorio: saveCaseSpacings reemplaza el objeto entero, así que sin los
+  // valores previos un guardado borraría los que ya tenía el caso.
+  useEffect(() => {
+    setSpacingTargetPrefix(null)
+    setSpacingsSaved(false)
+    setSpacingsError(null)
+    if (selectedPatientId == null) { setSpacings({}); return }
+    let active = true
+    getCasesByPatient(selectedPatientId)
+      .then(async cases => {
+        const latest = cases[0]
+        if (!active) return
+        if (!latest) { setSpacingTargetPrefix(null); setSpacings({}); return } // sin casos: se guarda al subir
+        setSpacingTargetPrefix(latest.storagePrefix)
+        const existing = await getCaseSpacings(latest.storagePrefix)
+        if (active) setSpacings(existing)
+      })
+      .catch(() => { if (active) { setSpacingTargetPrefix(null); setSpacings({}) } })
+    return () => { active = false }
+  }, [selectedPatientId])
+
   const selectedPatient = patients.find(p => p.id === selectedPatientId) ?? null
+
+  async function handleSaveSpacings() {
+    if (!spacingTargetPrefix) return
+    setSavingSpacings(true)
+    setSpacingsError(null)
+    setSpacingsSaved(false)
+    try {
+      await saveCaseSpacings(spacingTargetPrefix, spacingsRef.current)
+      setSpacingsSaved(true)
+    } catch (err) {
+      setSpacingsError(err instanceof Error ? err.message : String(err))
+    } finally {
+      setSavingSpacings(false)
+    }
+  }
 
   function handleFileChange(e: ChangeEvent<HTMLInputElement>) {
     const selected = Array.from(e.target.files ?? [])
@@ -86,9 +134,15 @@ export default function UploadPage() {
     })
 
     // La fila patient_models la crea la Cloud Function durante la subida, así que
-    // recién ahora existe para asociarle los spacings. No rompe el flujo si falla.
-    if (res.some(r => !r.error) && Object.keys(spacings).length > 0) {
-      await saveCaseSpacings(prefix, spacings).catch(() => {})
+    // recién ahora existe para asociarle los spacings. Leemos del ref (valor fresco)
+    // y surfaceamos el error en vez de tragarlo: un fallo dejaba la fila en {} en silencio.
+    const finalSpacings = spacingsRef.current
+    if (res.some(r => !r.error) && Object.keys(finalSpacings).length > 0) {
+      try {
+        await saveCaseSpacings(prefix, finalSpacings)
+      } catch (err) {
+        setSpacingsError(err instanceof Error ? err.message : String(err))
+      }
     }
 
     setResults(res)
@@ -118,6 +172,12 @@ export default function UploadPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="overflow-y-auto flex-1">
+            {spacingsError && (
+              <div className="mb-3 flex items-start gap-2 text-xs text-amber-500">
+                <AlertCircle className="h-4 w-4 shrink-0" />
+                <span>Los modelos se subieron, pero no se pudieron guardar los spacings: {spacingsError}</span>
+              </div>
+            )}
             <ul className="space-y-2">
               {results.map(r => (
                 <li key={r.originalName} className="flex items-center gap-2 text-sm">
@@ -147,7 +207,7 @@ export default function UploadPage() {
             <Button
               variant="ghost"
               className="w-full"
-              onClick={() => { setResults(null); setStatus({}); setFiles([]); setSelectedPatientId(null); setStoragePrefix(null); setSpacings({}) }}
+              onClick={() => { setResults(null); setStatus({}); setFiles([]); setSelectedPatientId(null); setStoragePrefix(null); setSpacings({}); setSpacingsError(null); setSpacingTargetPrefix(null); setSpacingsSaved(false) }}
             >
               Subir otro caso
             </Button>
@@ -312,9 +372,48 @@ export default function UploadPage() {
         </CardHeader>
         <CardContent className="flex-1 min-h-0 overflow-hidden">
           <div className="h-full rounded-md border bg-[rgba(8,8,8,0.98)] overflow-hidden">
-            <DentalPanel spacings={spacings} onSpacingsChange={setSpacings} />
+            <DentalPanel
+              spacings={spacings}
+              onSpacingsChange={next => { setSpacings(next); setSpacingsSaved(false) }}
+            />
           </div>
         </CardContent>
+        <CardFooter className="shrink-0 flex flex-col items-stretch gap-2 pt-4">
+          {spacingsError && (
+            <div className="flex items-start gap-2 text-xs text-destructive">
+              <AlertCircle className="h-4 w-4 shrink-0" />
+              <span>No se pudieron guardar los spacings: {spacingsError}</span>
+            </div>
+          )}
+          <p className="text-xs text-muted-foreground">
+            {spacingTargetPrefix
+              ? 'Se guardan en el caso más reciente del paciente, sin re-subir archivos'
+              : selectedPatientId == null
+                ? 'Elegí un paciente para editar los spacings de su caso'
+                : 'Este paciente no tiene casos: los spacings se guardan al subir uno'}
+          </p>
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full"
+            disabled={!spacingTargetPrefix || savingSpacings}
+            onClick={handleSaveSpacings}
+          >
+            {savingSpacings ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Guardando…
+              </>
+            ) : spacingsSaved ? (
+              <>
+                <CheckCircle2 className="h-4 w-4 mr-2 text-green-500" />
+                Guardado
+              </>
+            ) : (
+              'Guardar spacings'
+            )}
+          </Button>
+        </CardFooter>
       </Card>
     </div>
   )
