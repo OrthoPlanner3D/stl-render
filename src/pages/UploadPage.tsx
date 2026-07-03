@@ -175,13 +175,13 @@ export default function UploadPage() {
                 value={selectedPatientId ?? ''}
                 disabled={uploading || patientsLoading || !!patientsError}
                 onChange={e => setSelectedPatientId(e.target.value ? Number(e.target.value) : null)}
-                className="h-9 w-full min-w-0 rounded-3xl border border-transparent bg-input/50 px-3 py-1 text-base transition-[color,box-shadow,background-color] outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/30 disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
+                className="h-9 w-full min-w-0 rounded-3xl border border-transparent bg-input/50 px-3 py-1 text-base transition-[color,box-shadow,background-color] outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/30 disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm [color-scheme:dark]"
               >
-                <option value="" disabled>
+                <option value="" disabled className="bg-popover text-popover-foreground">
                   {patientsLoading ? 'Cargando pacientes…' : 'Seleccioná un paciente'}
                 </option>
                 {patients.map(p => (
-                  <option key={p.id} value={p.id}>{patientLabel(p)}</option>
+                  <option key={p.id} value={p.id} className="bg-popover text-popover-foreground">{patientLabel(p)}</option>
                 ))}
               </select>
               {patientsError ? (
