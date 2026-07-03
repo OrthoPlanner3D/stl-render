@@ -61,6 +61,11 @@ export default function UploadPage() {
     setFiles(prev => prev.filter(f => f.name !== name))
   }
 
+  function clearFiles() {
+    setFiles([])
+    setStatus({})
+  }
+
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
     if (files.length === 0 || selectedPatientId == null) return
@@ -222,10 +227,24 @@ export default function UploadPage() {
             {/* Lista de archivos */}
             {files.length > 0 && (
               <div className="flex flex-col gap-2 flex-1 min-h-0">
-                <Label className="shrink-0">
-                  Archivos seleccionados
-                  <Badge variant="secondary" className="ml-2">{files.length}</Badge>
-                </Label>
+                <div className="flex items-center justify-between shrink-0">
+                  <Label>
+                    Archivos seleccionados
+                    <Badge variant="secondary" className="ml-2">{files.length}</Badge>
+                  </Label>
+                  {!uploading && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={clearFiles}
+                      className="text-muted-foreground hover:text-destructive"
+                    >
+                      <X className="h-3.5 w-3.5 mr-1" />
+                      Borrar todos
+                    </Button>
+                  )}
+                </div>
                 <ul className="overflow-y-auto space-y-1.5 flex-1 pr-1">
                   {files.map(f => {
                     const st = status[f.name] ?? 'idle'
