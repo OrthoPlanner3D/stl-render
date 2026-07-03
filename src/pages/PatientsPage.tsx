@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { getPatients, patientLabel, type Patient } from '@/lib/patients'
 import { getLatestPrefixByPatient } from '@/lib/patientModels'
+import { renderUrl } from '@/lib/renderUrl'
 
 export default function PatientsPage() {
   const navigate = useNavigate()
@@ -32,11 +33,6 @@ export default function PatientsPage() {
   // Solo pacientes con al menos un render, preservando el orden de getPatients (id desc).
   const withRender = patients.filter(p => prefixByPatient.has(p.id))
 
-  // Link absoluto del render, compartible con cualquiera (el visor lo abre por URL directa).
-  function renderUrl(prefix: string) {
-    return `${window.location.origin}/app?prefix=${encodeURIComponent(prefix)}`
-  }
-
   function handleOpen(p: Patient) {
     const prefix = prefixByPatient.get(p.id)
     if (!prefix) return
@@ -56,8 +52,8 @@ export default function PatientsPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-md flex flex-col max-h-[90vh]">
+    <div className="min-h-screen flex items-center justify-center bg-background px-4 pb-4 pt-20">
+      <Card className="w-full max-w-md flex flex-col max-h-[calc(100vh-6rem)]">
         <CardHeader className="shrink-0">
           <div className="flex items-center gap-2 mb-1">
             <Users className="h-5 w-5 text-muted-foreground" />

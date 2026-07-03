@@ -18,7 +18,7 @@ export default function LoginPage() {
   function handleSubmit(e: FormEvent) {
     e.preventDefault()
     if (email === DEMO_EMAIL && password === DEMO_PASSWORD) {
-      navigate('/app')
+      navigate('/patients')
     } else {
       setError('Credenciales incorrectas')
     }
@@ -31,7 +31,7 @@ export default function LoginPage() {
           <div className="flex justify-center mb-2">
             <img src="/assets/logo-white.png" alt="OrthoPlan 3D" className="size-12 object-contain" />
           </div>
-          <CardTitle className="text-xl">OrthoPlan 3D</CardTitle>
+          <CardTitle className="text-xl">OrthoPlanner 3D</CardTitle>
           <CardDescription>Visor de planificación dental</CardDescription>
         </CardHeader>
 

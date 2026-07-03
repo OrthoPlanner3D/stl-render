@@ -95,8 +95,8 @@ export default function UploadPage() {
     const ok = results.filter(r => !r.error)
     const failed = results.filter(r => r.error)
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background p-4">
-        <Card className="w-full max-w-md flex flex-col max-h-[90vh]">
+      <div className="min-h-screen flex items-center justify-center bg-background px-4 pb-4 pt-20">
+        <Card className="w-full max-w-md flex flex-col max-h-[calc(100vh-6rem)]">
           <CardHeader className="text-center shrink-0">
             <div className="flex justify-center mb-2">
               {failed.length === 0 ? (
@@ -153,8 +153,8 @@ export default function UploadPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col lg:flex-row items-center lg:items-stretch justify-center gap-4 bg-background p-4">
-      <Card className="w-full max-w-md flex flex-col max-h-[90vh]">
+    <div className="min-h-screen flex flex-col lg:flex-row items-center lg:items-stretch justify-center gap-4 bg-background px-4 pb-4 pt-20">
+      <Card className="w-full max-w-md flex flex-col max-h-[calc(100vh-6rem)]">
         <CardHeader className="shrink-0">
           <div className="flex items-center gap-2 mb-1">
             <Upload className="h-5 w-5 text-muted-foreground" />
@@ -284,7 +284,7 @@ export default function UploadPage() {
       </Card>
 
       {/* Editor de spacings (opcional) — al lado del form */}
-      <Card className="w-full max-w-md flex flex-col max-h-[90vh]">
+      <Card className="w-full max-w-md flex flex-col max-h-[calc(100vh-6rem)]">
         <CardHeader className="shrink-0">
           <CardTitle>Spacings</CardTitle>
           <CardDescription>

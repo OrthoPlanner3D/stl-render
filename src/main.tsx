@@ -6,13 +6,19 @@ import ViewerPage from './pages/ViewerPage.tsx'
 import LoginPage from './pages/LoginPage.tsx'
 import UploadPage from './pages/UploadPage.tsx'
 import PatientsPage from './pages/PatientsPage.tsx'
+import AppLayout from './components/AppLayout.tsx'
 
 const router = createBrowserRouter([
   { path: '/', element: <Navigate to="/login" replace /> },
   { path: '/login', element: <LoginPage /> },
   { path: '/app', element: <ViewerPage /> },
-  { path: '/upload', element: <UploadPage /> },
-  { path: '/patients', element: <PatientsPage /> },
+  {
+    element: <AppLayout />,
+    children: [
+      { path: '/patients', element: <PatientsPage /> },
+      { path: '/upload', element: <UploadPage /> },
+    ],
+  },
 ])
 
 createRoot(document.getElementById('root')!).render(

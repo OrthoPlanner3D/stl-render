@@ -10,6 +10,7 @@ import DentalPanel from '../components/DentalPanel'
 import BottomBar from '../components/BottomBar'
 import ViewPresets from '../components/ViewPresets'
 import PatientInfo from '../components/PatientInfo'
+import ViewerActions from '../components/ViewerActions'
 
 export default function ViewerPage() {
   const [searchParams] = useSearchParams()
@@ -71,6 +72,7 @@ export default function ViewerPage() {
           viewFnRef={viewFnRef}
         />
         <PatientInfo isMobile={isMobile} name={patientName} />
+        <ViewerActions prefix={prefix} isMobile={isMobile} />
         <ViewPresets onView={dir => viewFnRef.current(dir)} />
         <BottomBar
           index={index}
