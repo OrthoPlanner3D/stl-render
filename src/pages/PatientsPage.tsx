@@ -52,7 +52,7 @@ export default function PatientsPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background px-4 pb-4 pt-20">
+    <div className="min-h-screen flex items-center justify-center bg-black px-4 pb-4 pt-20">
       <Card className="w-full max-w-md flex flex-col max-h-[calc(100vh-6rem)]">
         <CardHeader className="shrink-0">
           <div className="flex items-center gap-2 mb-1">

@@ -18,7 +18,7 @@ export default function AppLayout() {
   const location = useLocation()
 
   return (
-    <>
+    <div className="dark text-foreground">
       <nav className="fixed top-4 left-1/2 -translate-x-1/2 z-50 flex gap-1 rounded-full border bg-background/80 backdrop-blur-lg shadow-sm px-2 py-1">
         {NAV_ITEMS.map(({ path, label, icon: Icon }) => (
           <Button
@@ -35,6 +35,6 @@ export default function AppLayout() {
       </nav>
 
       <Outlet />
-    </>
+    </div>
   )
 }
