@@ -8,6 +8,8 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { uploadStlFiles, type UploadResult } from '@/lib/uploadStl'
 import { getPatients, patientLabel, type Patient } from '@/lib/patients'
+import { saveCaseSpacings } from '@/lib/patientModels'
+import DentalPanel from '@/components/DentalPanel'
 
 function formatBytes(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`
@@ -31,6 +33,8 @@ export default function UploadPage() {
   const [selectedPatientId, setSelectedPatientId] = useState<number | null>(null)
   // Prefijo del caso recién subido; se le pasa al visor para que liste ese caso.
   const [storagePrefix, setStoragePrefix] = useState<string | null>(null)
+  // Spacings interproximales (mm) cargados a mano; opcionales, se persisten por caso.
+  const [spacings, setSpacings] = useState<Record<string, string>>({})
 
   useEffect(() => {
     let active = true
@@ -75,6 +79,12 @@ export default function UploadPage() {
       onResult: r =>
         setStatus(prev => ({ ...prev, [r.originalName]: r.error ? 'error' : 'done' })),
     })
+
+    // La fila patient_models la crea la Cloud Function durante la subida, así que
+    // recién ahora existe para asociarle los spacings. No rompe el flujo si falla.
+    if (res.some(r => !r.error) && Object.keys(spacings).length > 0) {
+      await saveCaseSpacings(prefix, spacings).catch(() => {})
+    }
 
     setResults(res)
     setUploading(false)
@@ -132,7 +142,7 @@ export default function UploadPage() {
             <Button
               variant="ghost"
               className="w-full"
-              onClick={() => { setResults(null); setStatus({}); setFiles([]); setSelectedPatientId(null); setStoragePrefix(null) }}
+              onClick={() => { setResults(null); setStatus({}); setFiles([]); setSelectedPatientId(null); setStoragePrefix(null); setSpacings({}) }}
             >
               Subir otro caso
             </Button>
@@ -143,7 +153,7 @@ export default function UploadPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
+    <div className="min-h-screen flex flex-col lg:flex-row items-center lg:items-stretch justify-center gap-4 bg-background p-4">
       <Card className="w-full max-w-md flex flex-col max-h-[90vh]">
         <CardHeader className="shrink-0">
           <div className="flex items-center gap-2 mb-1">
@@ -271,6 +281,21 @@ export default function UploadPage() {
             </Button>
           </CardFooter>
         </form>
+      </Card>
+
+      {/* Editor de spacings (opcional) — al lado del form */}
+      <Card className="w-full max-w-md flex flex-col max-h-[90vh]">
+        <CardHeader className="shrink-0">
+          <CardTitle>Spacings</CardTitle>
+          <CardDescription>
+            Opcional — clickeá los puntos de contacto entre dientes para cargar la separación en mm
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="flex-1 min-h-0 overflow-hidden">
+          <div className="h-full rounded-md border bg-[rgba(8,8,8,0.98)] overflow-hidden">
+            <DentalPanel spacings={spacings} onSpacingsChange={setSpacings} />
+          </div>
+        </CardContent>
       </Card>
     </div>
   )

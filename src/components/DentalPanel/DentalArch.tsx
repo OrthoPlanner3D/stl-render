@@ -17,10 +17,12 @@ interface DentalArchProps {
   cy: number
   flip: boolean
   spacings: Record<string, string>
+  /** Sin interacción: no muestra cursor, no dispara onContactClick. */
+  readOnly?: boolean
   onContactClick: (id: string, e: React.MouseEvent<SVGElement>) => void
 }
 
-export default function DentalArch({ archKey, cx, cy, flip, spacings, onContactClick }: DentalArchProps) {
+export default function DentalArch({ archKey, cx, cy, flip, spacings, readOnly, onContactClick }: DentalArchProps) {
   const points = ARCH_ANGLES.map(a => archPoint(a, cx, cy, 70, flip))
 
   return (
@@ -41,12 +43,18 @@ export default function DentalArch({ archKey, cx, cy, flip, spacings, onContactC
         const contactAngle = flip ? -midAngle : midAngle
 
         return (
-          <g key={id} className="cursor-pointer" onClick={(e) => { e.stopPropagation(); onContactClick(id, e) }}>
-            <rect
-              x={mx - 8} y={my - 8} width={16} height={16}
-              fill="transparent"
-              transform={`rotate(${contactAngle}, ${mx}, ${my})`}
-            />
+          <g
+            key={id}
+            className={readOnly ? undefined : 'cursor-pointer'}
+            onClick={readOnly ? undefined : (e) => { e.stopPropagation(); onContactClick(id, e) }}
+          >
+            {!readOnly && (
+              <rect
+                x={mx - 8} y={my - 8} width={16} height={16}
+                fill="transparent"
+                transform={`rotate(${contactAngle}, ${mx}, ${my})`}
+              />
+            )}
             <line
               x1={mx - 4} y1={my} x2={mx + 4} y2={my}
               stroke={val ? '#ffc864' : 'rgba(255,255,255,0.22)'}

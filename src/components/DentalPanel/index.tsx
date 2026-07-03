@@ -1,24 +1,24 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef } from 'react'
 import { Input } from '@/components/ui/input'
 import { Separator } from '@/components/ui/separator'
 import DentalArch from './DentalArch'
 
-const STORAGE_KEY = 'dental-spacings'
+interface DentalPanelProps {
+  /** Valores de spacing por contacto (controlado). */
+  spacings: Record<string, string>
+  /** Si se omite, el panel es de solo-lectura (no edita ni abre el input). */
+  onSpacingsChange?: (next: Record<string, string>) => void
+}
 
-export default function DentalPanel() {
-  const [spacings, setSpacings] = useState<Record<string, string>>(() => {
-    try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}') } catch { return {} }
-  })
+export default function DentalPanel({ spacings, onSpacingsChange }: DentalPanelProps) {
+  const readOnly = !onSpacingsChange
   const [pendingContact, setPendingContact] = useState<string | null>(null)
   const [pendingSpacingValue, setPendingSpacingValue] = useState('')
   const [pendingInputPos, setPendingInputPos] = useState<{ x: number; y: number } | null>(null)
   const panelRef = useRef<HTMLDivElement>(null)
 
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(spacings))
-  }, [spacings])
-
   function handleContactClick(contactId: string, e: React.MouseEvent<SVGElement>) {
+    if (!onSpacingsChange) return
     const rect = panelRef.current!.getBoundingClientRect()
     setPendingContact(contactId)
     setPendingSpacingValue(spacings[contactId] ?? '')
@@ -26,11 +26,11 @@ export default function DentalPanel() {
   }
 
   function commitSpacing() {
-    if (!pendingContact) return
+    if (!pendingContact || !onSpacingsChange) return
     if (pendingSpacingValue.trim()) {
-      setSpacings(prev => ({ ...prev, [pendingContact]: pendingSpacingValue.trim() }))
+      onSpacingsChange({ ...spacings, [pendingContact]: pendingSpacingValue.trim() })
     } else {
-      setSpacings(prev => { const n = { ...prev }; delete n[pendingContact!]; return n })
+      const n = { ...spacings }; delete n[pendingContact]; onSpacingsChange(n)
     }
     setPendingContact(null)
     setPendingInputPos(null)
@@ -45,7 +45,7 @@ export default function DentalPanel() {
         Maxilar
       </div>
       <svg viewBox="0 0 200 90" width="100%" className="block overflow-visible">
-        <DentalArch archKey="max" cx={100} cy={5} flip={false} spacings={spacings} onContactClick={handleContactClick} />
+        <DentalArch archKey="max" cx={100} cy={5} flip={false} spacings={spacings} readOnly={readOnly} onContactClick={handleContactClick} />
       </svg>
 
       <Separator className="my-4" />
@@ -54,10 +54,10 @@ export default function DentalPanel() {
         Mandibular
       </div>
       <svg viewBox="0 0 200 90" width="100%" className="block overflow-visible">
-        <DentalArch archKey="man" cx={100} cy={85} flip={true} spacings={spacings} onContactClick={handleContactClick} />
+        <DentalArch archKey="man" cx={100} cy={85} flip={true} spacings={spacings} readOnly={readOnly} onContactClick={handleContactClick} />
       </svg>
 
-      {pendingContact && pendingInputPos && (
+      {!readOnly && pendingContact && pendingInputPos && (
         <div
           className="absolute z-30 bg-[rgba(10,10,10,0.95)] border border-[rgba(255,200,100,0.35)] rounded-[5px] px-1.5 py-0.5 flex items-center gap-1"
           style={{ left: pendingInputPos.x + 8, top: pendingInputPos.y - 14 }}
