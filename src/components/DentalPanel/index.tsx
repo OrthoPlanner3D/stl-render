@@ -4,33 +4,33 @@ import { Separator } from '@/components/ui/separator'
 import DentalArch from './DentalArch'
 
 interface DentalPanelProps {
-  /** Valores de spacing por contacto (controlado). */
-  spacings: Record<string, string>
+  /** Valores de IPR por contacto (controlado). */
+  ipr: Record<string, string>
   /** Si se omite, el panel es de solo-lectura (no edita ni abre el input). */
-  onSpacingsChange?: (next: Record<string, string>) => void
+  onIprChange?: (next: Record<string, string>) => void
 }
 
-export default function DentalPanel({ spacings, onSpacingsChange }: DentalPanelProps) {
-  const readOnly = !onSpacingsChange
+export default function DentalPanel({ ipr, onIprChange }: DentalPanelProps) {
+  const readOnly = !onIprChange
   const [pendingContact, setPendingContact] = useState<string | null>(null)
-  const [pendingSpacingValue, setPendingSpacingValue] = useState('')
+  const [pendingIprValue, setPendingIprValue] = useState('')
   const [pendingInputPos, setPendingInputPos] = useState<{ x: number; y: number } | null>(null)
   const panelRef = useRef<HTMLDivElement>(null)
 
   function handleContactClick(contactId: string, e: React.MouseEvent<SVGElement>) {
-    if (!onSpacingsChange) return
+    if (!onIprChange) return
     const rect = panelRef.current!.getBoundingClientRect()
     setPendingContact(contactId)
-    setPendingSpacingValue(spacings[contactId] ?? '')
+    setPendingIprValue(ipr[contactId] ?? '')
     setPendingInputPos({ x: e.clientX - rect.left, y: e.clientY - rect.top })
   }
 
-  function commitSpacing() {
-    if (!pendingContact || !onSpacingsChange) return
-    if (pendingSpacingValue.trim()) {
-      onSpacingsChange({ ...spacings, [pendingContact]: pendingSpacingValue.trim() })
+  function commitIpr() {
+    if (!pendingContact || !onIprChange) return
+    if (pendingIprValue.trim()) {
+      onIprChange({ ...ipr, [pendingContact]: pendingIprValue.trim() })
     } else {
-      const n = { ...spacings }; delete n[pendingContact]; onSpacingsChange(n)
+      const n = { ...ipr }; delete n[pendingContact]; onIprChange(n)
     }
     setPendingContact(null)
     setPendingInputPos(null)
@@ -45,7 +45,7 @@ export default function DentalPanel({ spacings, onSpacingsChange }: DentalPanelP
         Maxilar
       </div>
       <svg viewBox="0 0 200 90" width="100%" className="block overflow-visible">
-        <DentalArch archKey="max" cx={100} cy={5} flip={false} spacings={spacings} readOnly={readOnly} onContactClick={handleContactClick} />
+        <DentalArch archKey="max" cx={100} cy={5} flip={false} ipr={ipr} readOnly={readOnly} onContactClick={handleContactClick} />
       </svg>
 
       <Separator className="my-4" />
@@ -54,7 +54,7 @@ export default function DentalPanel({ spacings, onSpacingsChange }: DentalPanelP
         Mandibular
       </div>
       <svg viewBox="0 0 200 90" width="100%" className="block overflow-visible">
-        <DentalArch archKey="man" cx={100} cy={85} flip={true} spacings={spacings} readOnly={readOnly} onContactClick={handleContactClick} />
+        <DentalArch archKey="man" cx={100} cy={85} flip={true} ipr={ipr} readOnly={readOnly} onContactClick={handleContactClick} />
       </svg>
 
       {!readOnly && pendingContact && pendingInputPos && (
@@ -69,13 +69,13 @@ export default function DentalPanel({ spacings, onSpacingsChange }: DentalPanelP
             min="0"
             max="5"
             placeholder="0.0"
-            value={pendingSpacingValue}
-            onChange={e => setPendingSpacingValue(e.target.value)}
+            value={pendingIprValue}
+            onChange={e => setPendingIprValue(e.target.value)}
             onKeyDown={e => {
-              if (e.key === 'Enter') commitSpacing()
+              if (e.key === 'Enter') commitIpr()
               if (e.key === 'Escape') { setPendingContact(null); setPendingInputPos(null) }
             }}
-            onBlur={commitSpacing}
+            onBlur={commitIpr}
             className="h-6 w-[50px] border-none bg-transparent p-0 text-[13px] text-[#ffc864] focus-visible:ring-0"
           />
           <span className="text-[11px] text-[#555]">mm</span>

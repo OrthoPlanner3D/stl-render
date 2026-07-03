@@ -53,27 +53,27 @@ export async function getLatestPrefixByPatient(): Promise<Map<number, string>> {
 }
 
 /**
- * Spacings interproximales (mm) guardados para un caso, keyeados por contacto
- * (ej. `max_0_1`). Columna JSONB `spacings` en patient_models. Devuelve {} si no hay.
+ * IPR interproximales (mm) guardados para un caso, keyeados por contacto
+ * (ej. `max_0_1`). Columna JSONB `ipr` en patient_models. Devuelve {} si no hay.
  */
-export async function getCaseSpacings(storagePrefix: string): Promise<Record<string, string>> {
+export async function getCaseIpr(storagePrefix: string): Promise<Record<string, string>> {
   const { data, error } = await supabase
     .from('patient_models')
-    .select('spacings')
+    .select('ipr')
     .eq('storage_prefix', storagePrefix)
     .maybeSingle()
   if (error) throw new Error(error.message)
-  return (data?.spacings as Record<string, string> | undefined) ?? {}
+  return (data?.ipr as Record<string, string> | undefined) ?? {}
 }
 
 /**
- * Persiste los spacings del caso (update por storage_prefix). La fila la crea la
+ * Persiste los IPR del caso (update por storage_prefix). La fila la crea la
  * Cloud Function durante la subida, así que esto se llama DESPUÉS de subir OK.
  */
-export async function saveCaseSpacings(storagePrefix: string, spacings: Record<string, string>): Promise<void> {
+export async function saveCaseIpr(storagePrefix: string, ipr: Record<string, string>): Promise<void> {
   const { error } = await supabase
     .from('patient_models')
-    .update({ spacings })
+    .update({ ipr })
     .eq('storage_prefix', storagePrefix)
   if (error) throw new Error(error.message)
 }

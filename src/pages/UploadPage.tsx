@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { uploadStlFiles, type UploadResult } from '@/lib/uploadStl'
 import { getPatients, patientLabel, type Patient } from '@/lib/patients'
-import { saveCaseSpacings, getCasesByPatient, getCaseSpacings } from '@/lib/patientModels'
+import { saveCaseIpr, getCasesByPatient, getCaseIpr } from '@/lib/patientModels'
 import DentalPanel from '@/components/DentalPanel'
 
 function formatBytes(bytes: number): string {
@@ -33,19 +33,19 @@ export default function UploadPage() {
   const [selectedPatientId, setSelectedPatientId] = useState<number | null>(null)
   // Prefijo del caso recién subido; se le pasa al visor para que liste ese caso.
   const [storagePrefix, setStoragePrefix] = useState<string | null>(null)
-  // Spacings interproximales (mm) cargados a mano; opcionales, se persisten por caso.
-  const [spacings, setSpacings] = useState<Record<string, string>>({})
-  // Ref siempre sincronizado al último `spacings`: evita leer un valor obsoleto en
+  // IPR interproximales (mm) cargados a mano; opcionales, se persisten por caso.
+  const [ipr, setIpr] = useState<Record<string, string>>({})
+  // Ref siempre sincronizado al último `ipr`: evita leer un valor obsoleto en
   // handleSubmit cuando el usuario tipea y aprieta "Subir" en el mismo gesto (el blur
   // que confirma el valor recién impacta el estado, no el closure ya capturado).
-  const spacingsRef = useRef(spacings)
-  useEffect(() => { spacingsRef.current = spacings }, [spacings])
-  // Error del guardado de spacings (los STL sí se subieron); se muestra en resultados.
-  const [spacingsError, setSpacingsError] = useState<string | null>(null)
-  // Caso más reciente del paciente elegido: destino del guardado de spacings sin re-subir.
-  const [spacingTargetPrefix, setSpacingTargetPrefix] = useState<string | null>(null)
-  const [savingSpacings, setSavingSpacings] = useState(false)
-  const [spacingsSaved, setSpacingsSaved] = useState(false)
+  const iprRef = useRef(ipr)
+  useEffect(() => { iprRef.current = ipr }, [ipr])
+  // Error del guardado de IPR (los STL sí se subieron); se muestra en resultados.
+  const [iprError, setIprError] = useState<string | null>(null)
+  // Caso más reciente del paciente elegido: destino del guardado de IPR sin re-subir.
+  const [iprTargetPrefix, setIprTargetPrefix] = useState<string | null>(null)
+  const [savingIpr, setSavingIpr] = useState(false)
+  const [iprSaved, setIprSaved] = useState(false)
 
   useEffect(() => {
     let active = true
@@ -56,42 +56,42 @@ export default function UploadPage() {
     return () => { active = false }
   }, [])
 
-  // Al elegir paciente, ubicamos su caso más reciente y precargamos sus spacings actuales.
-  // Precargar es obligatorio: saveCaseSpacings reemplaza el objeto entero, así que sin los
+  // Al elegir paciente, ubicamos su caso más reciente y precargamos sus IPR actuales.
+  // Precargar es obligatorio: saveCaseIpr reemplaza el objeto entero, así que sin los
   // valores previos un guardado borraría los que ya tenía el caso.
   useEffect(() => {
-    setSpacingTargetPrefix(null)
-    setSpacingsSaved(false)
-    setSpacingsError(null)
-    if (selectedPatientId == null) { setSpacings({}); return }
+    setIprTargetPrefix(null)
+    setIprSaved(false)
+    setIprError(null)
+    if (selectedPatientId == null) { setIpr({}); return }
     let active = true
     getCasesByPatient(selectedPatientId)
       .then(async cases => {
         const latest = cases[0]
         if (!active) return
-        if (!latest) { setSpacingTargetPrefix(null); setSpacings({}); return } // sin casos: se guarda al subir
-        setSpacingTargetPrefix(latest.storagePrefix)
-        const existing = await getCaseSpacings(latest.storagePrefix)
-        if (active) setSpacings(existing)
+        if (!latest) { setIprTargetPrefix(null); setIpr({}); return } // sin casos: se guarda al subir
+        setIprTargetPrefix(latest.storagePrefix)
+        const existing = await getCaseIpr(latest.storagePrefix)
+        if (active) setIpr(existing)
       })
-      .catch(() => { if (active) { setSpacingTargetPrefix(null); setSpacings({}) } })
+      .catch(() => { if (active) { setIprTargetPrefix(null); setIpr({}) } })
     return () => { active = false }
   }, [selectedPatientId])
 
   const selectedPatient = patients.find(p => p.id === selectedPatientId) ?? null
 
-  async function handleSaveSpacings() {
-    if (!spacingTargetPrefix) return
-    setSavingSpacings(true)
-    setSpacingsError(null)
-    setSpacingsSaved(false)
+  async function handleSaveIpr() {
+    if (!iprTargetPrefix) return
+    setSavingIpr(true)
+    setIprError(null)
+    setIprSaved(false)
     try {
-      await saveCaseSpacings(spacingTargetPrefix, spacingsRef.current)
-      setSpacingsSaved(true)
+      await saveCaseIpr(iprTargetPrefix, iprRef.current)
+      setIprSaved(true)
     } catch (err) {
-      setSpacingsError(err instanceof Error ? err.message : String(err))
+      setIprError(err instanceof Error ? err.message : String(err))
     } finally {
-      setSavingSpacings(false)
+      setSavingIpr(false)
     }
   }
 
@@ -134,14 +134,14 @@ export default function UploadPage() {
     })
 
     // La fila patient_models la crea la Cloud Function durante la subida, así que
-    // recién ahora existe para asociarle los spacings. Leemos del ref (valor fresco)
+    // recién ahora existe para asociarle los IPR. Leemos del ref (valor fresco)
     // y surfaceamos el error en vez de tragarlo: un fallo dejaba la fila en {} en silencio.
-    const finalSpacings = spacingsRef.current
-    if (res.some(r => !r.error) && Object.keys(finalSpacings).length > 0) {
+    const finalIpr = iprRef.current
+    if (res.some(r => !r.error) && Object.keys(finalIpr).length > 0) {
       try {
-        await saveCaseSpacings(prefix, finalSpacings)
+        await saveCaseIpr(prefix, finalIpr)
       } catch (err) {
-        setSpacingsError(err instanceof Error ? err.message : String(err))
+        setIprError(err instanceof Error ? err.message : String(err))
       }
     }
 
@@ -172,10 +172,10 @@ export default function UploadPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="overflow-y-auto flex-1">
-            {spacingsError && (
+            {iprError && (
               <div className="mb-3 flex items-start gap-2 text-xs text-amber-500">
                 <AlertCircle className="h-4 w-4 shrink-0" />
-                <span>Los modelos se subieron, pero no se pudieron guardar los spacings: {spacingsError}</span>
+                <span>Los modelos se subieron, pero no se pudieron guardar los IPR: {iprError}</span>
               </div>
             )}
             <ul className="space-y-2">
@@ -207,7 +207,7 @@ export default function UploadPage() {
             <Button
               variant="ghost"
               className="w-full"
-              onClick={() => { setResults(null); setStatus({}); setFiles([]); setSelectedPatientId(null); setStoragePrefix(null); setSpacings({}); setSpacingsError(null); setSpacingTargetPrefix(null); setSpacingsSaved(false) }}
+              onClick={() => { setResults(null); setStatus({}); setFiles([]); setSelectedPatientId(null); setStoragePrefix(null); setIpr({}); setIprError(null); setIprTargetPrefix(null); setIprSaved(false) }}
             >
               Subir otro caso
             </Button>
@@ -362,10 +362,10 @@ export default function UploadPage() {
         </form>
       </Card>
 
-      {/* Editor de spacings (opcional) — al lado del form */}
+      {/* Editor de IPR (opcional) — al lado del form */}
       <Card className="w-full max-w-md flex flex-col max-h-[calc(100vh-6rem)]">
         <CardHeader className="shrink-0">
-          <CardTitle>Spacings</CardTitle>
+          <CardTitle>IPR</CardTitle>
           <CardDescription>
             Opcional — clickeá los puntos de contacto entre dientes para cargar la separación en mm
           </CardDescription>
@@ -373,44 +373,44 @@ export default function UploadPage() {
         <CardContent className="flex-1 min-h-0 overflow-hidden">
           <div className="h-full rounded-md border bg-[rgba(8,8,8,0.98)] overflow-hidden">
             <DentalPanel
-              spacings={spacings}
-              onSpacingsChange={next => { setSpacings(next); setSpacingsSaved(false) }}
+              ipr={ipr}
+              onIprChange={next => { setIpr(next); setIprSaved(false) }}
             />
           </div>
         </CardContent>
         <CardFooter className="shrink-0 flex flex-col items-stretch gap-2 pt-4">
-          {spacingsError && (
+          {iprError && (
             <div className="flex items-start gap-2 text-xs text-destructive">
               <AlertCircle className="h-4 w-4 shrink-0" />
-              <span>No se pudieron guardar los spacings: {spacingsError}</span>
+              <span>No se pudieron guardar los IPR: {iprError}</span>
             </div>
           )}
           <p className="text-xs text-muted-foreground">
-            {spacingTargetPrefix
+            {iprTargetPrefix
               ? 'Se guardan en el caso más reciente del paciente, sin re-subir archivos'
               : selectedPatientId == null
-                ? 'Elegí un paciente para editar los spacings de su caso'
-                : 'Este paciente no tiene casos: los spacings se guardan al subir uno'}
+                ? 'Elegí un paciente para editar los IPR de su caso'
+                : 'Este paciente no tiene casos: los IPR se guardan al subir uno'}
           </p>
           <Button
             type="button"
             variant="outline"
             className="w-full"
-            disabled={!spacingTargetPrefix || savingSpacings}
-            onClick={handleSaveSpacings}
+            disabled={!iprTargetPrefix || savingIpr}
+            onClick={handleSaveIpr}
           >
-            {savingSpacings ? (
+            {savingIpr ? (
               <>
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                 Guardando…
               </>
-            ) : spacingsSaved ? (
+            ) : iprSaved ? (
               <>
                 <CheckCircle2 className="h-4 w-4 mr-2 text-green-500" />
                 Guardado
               </>
             ) : (
-              'Guardar spacings'
+              'Guardar IPR'
             )}
           </Button>
         </CardFooter>

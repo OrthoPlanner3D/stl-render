@@ -6,7 +6,7 @@ import ErrorBoundary from '../components/ErrorBoundary'
 import { useBreakpoint } from '../hooks/useBreakpoint'
 import { useStlArches } from '../hooks/useStlArches'
 import { usePatientName } from '../hooks/usePatientName'
-import { useCaseSpacings } from '../hooks/useCaseSpacings'
+import { useCaseIpr } from '../hooks/useCaseIpr'
 import StlViewer from '../components/StlViewer'
 import DentalPanel from '../components/DentalPanel'
 import BottomBar from '../components/BottomBar'
@@ -19,7 +19,7 @@ export default function ViewerPage() {
   const storagePrefix = searchParams.get('prefix')
   const { loading, error, maxillary, mandibular, prefix, reload } = useStlArches(storagePrefix)
   const patientName = usePatientName(prefix)
-  const spacings = useCaseSpacings(prefix)
+  const ipr = useCaseIpr(prefix)
   const [index, setIndex] = useState(0)
   const [playing, setPlaying] = useState(false)
   const [showMax, setShowMax] = useState(true)
@@ -108,7 +108,7 @@ export default function ViewerPage() {
 
       {/* 30% — Panel dental */}
       <div className="w-[30%] h-screen shrink-0 bg-[rgba(8,8,8,0.98)] border-l border-white/[0.06]">
-        <DentalPanel spacings={spacings} />
+        <DentalPanel ipr={ipr} />
       </div>
     </div>
   )

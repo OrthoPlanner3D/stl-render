@@ -16,13 +16,13 @@ interface DentalArchProps {
   cx: number
   cy: number
   flip: boolean
-  spacings: Record<string, string>
+  ipr: Record<string, string>
   /** Sin interacción: no muestra cursor, no dispara onContactClick. */
   readOnly?: boolean
   onContactClick: (id: string, e: React.MouseEvent<SVGElement>) => void
 }
 
-export default function DentalArch({ archKey, cx, cy, flip, spacings, readOnly, onContactClick }: DentalArchProps) {
+export default function DentalArch({ archKey, cx, cy, flip, ipr, readOnly, onContactClick }: DentalArchProps) {
   const points = ARCH_ANGLES.map(a => archPoint(a, cx, cy, 70, flip))
 
   return (
@@ -38,7 +38,7 @@ export default function DentalArch({ archKey, cx, cy, flip, spacings, readOnly, 
         const mx = (p.x + next.x) / 2
         const my = (p.y + next.y) / 2
         const id = `${archKey}_${i}_${i + 1}`
-        const val = spacings[id]
+        const val = ipr[id]
         const midAngle = (ARCH_ANGLES[i] + ARCH_ANGLES[i + 1]) / 2
         const contactAngle = flip ? -midAngle : midAngle
 
