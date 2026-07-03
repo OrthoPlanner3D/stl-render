@@ -9,6 +9,8 @@ import { Badge } from '@/components/ui/badge'
 import { uploadStlFiles, type UploadResult } from '@/lib/uploadStl'
 import { getPatients, patientLabel, type Patient } from '@/lib/patients'
 import { saveCaseIpr, getCasesByPatient, getCaseIpr } from '@/lib/patientModels'
+import { saveRender3dLink } from '@/lib/treatmentPlanning'
+import { renderUrl } from '@/lib/renderUrl'
 import DentalPanel from '@/components/DentalPanel'
 
 function formatBytes(bytes: number): string {
@@ -42,6 +44,8 @@ export default function UploadPage() {
   useEffect(() => { iprRef.current = ipr }, [ipr])
   // Error del guardado de IPR (los STL sí se subieron); se muestra en resultados.
   const [iprError, setIprError] = useState<string | null>(null)
+  // Error del guardado del link del render en treatment_planning (los STL sí se subieron).
+  const [renderLinkError, setRenderLinkError] = useState<string | null>(null)
   // Caso más reciente del paciente elegido: destino del guardado de IPR sin re-subir.
   const [iprTargetPrefix, setIprTargetPrefix] = useState<string | null>(null)
   const [savingIpr, setSavingIpr] = useState(false)
@@ -145,6 +149,15 @@ export default function UploadPage() {
       }
     }
 
+    // Persistir el link del render en la ficha de tratamiento (una fila por paciente).
+    if (res.some(r => !r.error) && selectedPatientId != null) {
+      try {
+        await saveRender3dLink(selectedPatientId, renderUrl(prefix))
+      } catch (err) {
+        setRenderLinkError(err instanceof Error ? err.message : String(err))
+      }
+    }
+
     setResults(res)
     setUploading(false)
   }
@@ -178,6 +191,12 @@ export default function UploadPage() {
                 <span>Los modelos se subieron, pero no se pudieron guardar los IPR: {iprError}</span>
               </div>
             )}
+            {renderLinkError && (
+              <div className="mb-3 flex items-start gap-2 text-xs text-amber-500">
+                <AlertCircle className="h-4 w-4 shrink-0" />
+                <span>Los modelos se subieron, pero no se pudo guardar el link del render: {renderLinkError}</span>
+              </div>
+            )}
             <ul className="space-y-2">
               {results.map(r => (
                 <li key={r.originalName} className="flex items-center gap-2 text-sm">
@@ -207,7 +226,7 @@ export default function UploadPage() {
             <Button
               variant="ghost"
               className="w-full"
-              onClick={() => { setResults(null); setStatus({}); setFiles([]); setSelectedPatientId(null); setStoragePrefix(null); setIpr({}); setIprError(null); setIprTargetPrefix(null); setIprSaved(false) }}
+              onClick={() => { setResults(null); setStatus({}); setFiles([]); setSelectedPatientId(null); setStoragePrefix(null); setIpr({}); setIprError(null); setRenderLinkError(null); setIprTargetPrefix(null); setIprSaved(false) }}
             >
               Subir otro caso
             </Button>
