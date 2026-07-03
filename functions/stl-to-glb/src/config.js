@@ -9,7 +9,11 @@
 
 'use strict'
 
-const DEFAULT_BUCKET = 'glb-models'
+const DEFAULT_BUCKET = 'patient-models'
+const DEFAULT_SCHEMA = 'op3dcloud'
+
+// Tabla donde se registra cada caso 3D (una fila por storage_prefix).
+const TABLE = 'patient_models'
 
 // --- Límites de subida y URLs firmadas (antes en index.js) ---
 const MAX_FILE_BYTES = 50 * 1024 * 1024 // 50MB por archivo
@@ -27,14 +31,18 @@ const apiKey = () => process.env.STL_API_KEY
 const supabaseUrl = () => process.env.SUPABASE_URL
 const supabaseServiceKey = () => process.env.SUPABASE_SERVICE_ROLE_KEY
 const bucketName = () => process.env.SUPABASE_BUCKET || DEFAULT_BUCKET
+// La tabla patient_models vive en el schema op3dcloud, no en public.
+const schemaName = () => process.env.SUPABASE_SCHEMA || DEFAULT_SCHEMA
 
 module.exports = {
   MAX_FILE_BYTES,
   MAX_TOTAL_BYTES,
   SIGNED_URL_TTL,
   DRACO_QUANTIZE_POSITION,
+  TABLE,
   apiKey,
   supabaseUrl,
   supabaseServiceKey,
   bucketName,
+  schemaName,
 }

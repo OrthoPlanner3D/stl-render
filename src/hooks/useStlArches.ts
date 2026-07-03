@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useLoader } from '@react-three/fiber'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import { fetchArches, extendGLTFLoader, type ArchAssets } from '../data/stlAssets'
+import { getLatestStoragePrefix } from '../lib/patientModels'
 
 interface StlArchesState {
   loading: boolean
@@ -11,10 +12,12 @@ interface StlArchesState {
 }
 
 /**
- * Carga los arcos (Maxilar / Mandibular) desde el bucket vía el endpoint, una vez
- * al montar. Tras cargar, preloadea los GLB para que la animación de pasos no tenga hipos.
+ * Carga los arcos (Maxilar / Mandibular) del caso indicado por `storagePrefix`. Si es
+ * null (se abrió el visor sin caso), cae al caso más reciente de patient_models. Tras
+ * cargar, preloadea los GLB para que la animación de pasos no tenga hipos. Se re-ejecuta
+ * cuando cambia el prefijo.
  */
-export function useStlArches(): StlArchesState {
+export function useStlArches(storagePrefix: string | null): StlArchesState {
   const [state, setState] = useState<StlArchesState>({
     loading: true,
     error: null,
@@ -24,7 +27,16 @@ export function useStlArches(): StlArchesState {
 
   useEffect(() => {
     let cancelled = false
-    fetchArches()
+
+    const prefixPromise = storagePrefix
+      ? Promise.resolve(storagePrefix)
+      : getLatestStoragePrefix()
+
+    prefixPromise
+      .then(prefix => {
+        if (!prefix) throw new Error('No hay ningún caso cargado todavía')
+        return fetchArches(prefix)
+      })
       .then(({ maxillary, mandibular }) => {
         if (cancelled) return
         for (const url of [...maxillary.stls, ...mandibular.stls]) {
@@ -39,7 +51,7 @@ export function useStlArches(): StlArchesState {
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [storagePrefix])
 
   return state
 }

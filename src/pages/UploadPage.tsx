@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import type { FormEvent, ChangeEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { FileIcon, X, Upload, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react'
@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { uploadStlFiles, type UploadResult } from '@/lib/uploadStl'
+import { getPatients, patientLabel, type Patient } from '@/lib/patients'
 
 function formatBytes(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`
@@ -24,6 +25,24 @@ export default function UploadPage() {
   const [uploading, setUploading] = useState(false)
   const [results, setResults] = useState<UploadResult[] | null>(null)
 
+  const [patients, setPatients] = useState<Patient[]>([])
+  const [patientsLoading, setPatientsLoading] = useState(true)
+  const [patientsError, setPatientsError] = useState<string | null>(null)
+  const [selectedPatientId, setSelectedPatientId] = useState<number | null>(null)
+  // Prefijo del caso recién subido; se le pasa al visor para que liste ese caso.
+  const [storagePrefix, setStoragePrefix] = useState<string | null>(null)
+
+  useEffect(() => {
+    let active = true
+    getPatients()
+      .then(list => { if (active) setPatients(list) })
+      .catch(err => { if (active) setPatientsError(err instanceof Error ? err.message : String(err)) })
+      .finally(() => { if (active) setPatientsLoading(false) })
+    return () => { active = false }
+  }, [])
+
+  const selectedPatient = patients.find(p => p.id === selectedPatientId) ?? null
+
   function handleFileChange(e: ChangeEvent<HTMLInputElement>) {
     const selected = Array.from(e.target.files ?? [])
     setFiles(prev => {
@@ -40,11 +59,19 @@ export default function UploadPage() {
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
+    if (files.length === 0 || selectedPatientId == null) return
     setUploading(true)
     setStatus(Object.fromEntries(files.map(f => [f.name, 'uploading' as FileStatus])))
 
+    // Un prefijo único por caso — la barra final es obligatoria. Todos los archivos
+    // del caso comparten este prefijo y se agrupan bajo él en el bucket.
+    const prefix = `${selectedPatientId}/${crypto.randomUUID()}/`
+    setStoragePrefix(prefix)
+
     const res = await uploadStlFiles(files, {
       concurrency: 4,
+      patientId: selectedPatientId ?? undefined,
+      storagePrefix: prefix,
       onResult: r =>
         setStatus(prev => ({ ...prev, [r.originalName]: r.error ? 'error' : 'done' })),
     })
@@ -72,6 +99,7 @@ export default function UploadPage() {
             <CardDescription>
               {ok.length} convertido{ok.length !== 1 ? 's' : ''} a GLB
               {failed.length > 0 && ` · ${failed.length} con error`}
+              {selectedPatient && ` · Paciente: ${patientLabel(selectedPatient)}`}
             </CardDescription>
           </CardHeader>
           <CardContent className="overflow-y-auto flex-1">
@@ -94,13 +122,17 @@ export default function UploadPage() {
             </ul>
           </CardContent>
           <CardFooter className="flex flex-col gap-2 shrink-0">
-            <Button className="w-full" onClick={() => navigate('/app')}>
+            <Button
+              className="w-full"
+              disabled={ok.length === 0 || !storagePrefix}
+              onClick={() => navigate(`/app?prefix=${encodeURIComponent(storagePrefix ?? '')}`)}
+            >
               Ir al visor
             </Button>
             <Button
               variant="ghost"
               className="w-full"
-              onClick={() => { setResults(null); setStatus({}); setFiles([]) }}
+              onClick={() => { setResults(null); setStatus({}); setFiles([]); setSelectedPatientId(null); setStoragePrefix(null) }}
             >
               Subir otro caso
             </Button>
@@ -125,6 +157,32 @@ export default function UploadPage() {
 
         <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
           <CardContent className="flex flex-col gap-4 flex-1 min-h-0 overflow-hidden">
+            {/* Selector de paciente */}
+            <div className="space-y-2 shrink-0">
+              <Label htmlFor="patient">Paciente</Label>
+              <select
+                id="patient"
+                value={selectedPatientId ?? ''}
+                disabled={uploading || patientsLoading || !!patientsError}
+                onChange={e => setSelectedPatientId(e.target.value ? Number(e.target.value) : null)}
+                className="h-9 w-full min-w-0 rounded-3xl border border-transparent bg-input/50 px-3 py-1 text-base transition-[color,box-shadow,background-color] outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/30 disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
+              >
+                <option value="" disabled>
+                  {patientsLoading ? 'Cargando pacientes…' : 'Seleccioná un paciente'}
+                </option>
+                {patients.map(p => (
+                  <option key={p.id} value={p.id}>{patientLabel(p)}</option>
+                ))}
+              </select>
+              {patientsError ? (
+                <p className="text-xs text-destructive">No se pudieron cargar los pacientes: {patientsError}</p>
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  Los archivos se vincularán a este paciente
+                </p>
+              )}
+            </div>
+
             {/* Selector de archivos */}
             <div className="space-y-2 shrink-0">
               <Label>Archivos STL</Label>
@@ -200,7 +258,7 @@ export default function UploadPage() {
             <Button
               type="submit"
               className="w-full"
-              disabled={files.length === 0 || uploading}
+              disabled={files.length === 0 || uploading || selectedPatientId == null}
             >
               {uploading ? (
                 <>

@@ -20,12 +20,17 @@ export interface UploadResult {
 }
 
 /** Sube un único archivo al endpoint y devuelve su resultado (nunca rechaza). */
-export async function uploadStlFile(file: File): Promise<UploadResult> {
+export async function uploadStlFile(
+  file: File,
+  { patientId, storagePrefix }: { patientId?: number; storagePrefix?: string } = {},
+): Promise<UploadResult> {
   if (!ENDPOINT || !API_KEY) {
     return { originalName: file.name, error: 'Faltan VITE_STL_ENDPOINT / VITE_STL_API_KEY' }
   }
   const form = new FormData()
   form.append('files', file, file.name)
+  if (patientId != null) form.append('patientId', String(patientId))
+  if (storagePrefix != null) form.append('storage_prefix', storagePrefix)
   try {
     const res = await fetch(ENDPOINT, {
       method: 'POST',
@@ -50,7 +55,17 @@ export async function uploadStlFile(file: File): Promise<UploadResult> {
  */
 export async function uploadStlFiles(
   files: File[],
-  { concurrency = 4, onResult }: { concurrency?: number; onResult?: (r: UploadResult) => void } = {},
+  {
+    concurrency = 4,
+    onResult,
+    patientId,
+    storagePrefix,
+  }: {
+    concurrency?: number
+    onResult?: (r: UploadResult) => void
+    patientId?: number
+    storagePrefix?: string
+  } = {},
 ): Promise<UploadResult[]> {
   const results: UploadResult[] = new Array(files.length)
   let next = 0
@@ -58,7 +73,7 @@ export async function uploadStlFiles(
   async function worker() {
     while (next < files.length) {
       const i = next++
-      const r = await uploadStlFile(files[i])
+      const r = await uploadStlFile(files[i], { patientId, storagePrefix })
       results[i] = r
       onResult?.(r)
     }

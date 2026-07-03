@@ -18,7 +18,7 @@ const Busboy = require('busboy')
 
 const config = require('./config')
 const { convertStlToCompressedGlb } = require('./convert')
-const { uploadToSupabase, listSignedGlbUrls } = require('./supabase')
+const { uploadToSupabase, upsertPatientModel, listSignedGlbUrls } = require('./supabase')
 
 /** Mensaje de error legible, venga un Error o cualquier otra cosa. */
 function errorMessage(err) {
@@ -49,16 +49,21 @@ function isAuthorized(req) {
 }
 
 /**
- * Parsea el multipart del request en archivos { filename, data }.
+ * Parsea el multipart del request en archivos { filename, data } y campos de texto.
  * @param {import('@google-cloud/functions-framework').Request} req
- * @returns {Promise<Array<{ filename: string, data: Buffer }>>}
+ * @returns {Promise<{ files: Array<{ filename: string, data: Buffer }>, fields: Record<string, string> }>}
  */
 function parseMultipart(req) {
   return new Promise((resolve, reject) => {
     const bb = Busboy({ headers: req.headers, limits: { fileSize: config.MAX_FILE_BYTES } })
     const files = []
+    const fields = {}
     let total = 0
     let failed = null
+
+    bb.on('field', (name, value) => {
+      fields[name] = value
+    })
 
     bb.on('file', (_field, stream, info) => {
       const chunks = []
@@ -75,7 +80,7 @@ function parseMultipart(req) {
       })
     })
     bb.on('error', (err) => reject(err instanceof Error ? err : new Error(String(err))))
-    bb.on('close', () => (failed ? reject(failed) : resolve(files)))
+    bb.on('close', () => (failed ? reject(failed) : resolve({ files, fields })))
 
     // En Cloud Functions el body ya viene en req.rawBody; en local se pipea el stream.
     if (req.rawBody) bb.end(req.rawBody)
@@ -93,7 +98,7 @@ async function handleList(res) {
   }
 }
 
-/** POST → parsea el multipart, convierte cada .stl a .glb y lo sube a Supabase. */
+/** POST → parsea el multipart, convierte cada .stl a .glb bajo el prefijo del caso y lo sube. */
 async function handleConvert(req, res) {
   let parsed
   try {
@@ -103,21 +108,47 @@ async function handleConvert(req, res) {
     return
   }
 
-  if (parsed.length === 0) {
+  const { files, fields } = parsed
+
+  if (files.length === 0) {
     res.status(400).json({ error: "no files provided (campo 'files')" })
     return
   }
 
+  // Prefijo del caso: <patientId>/<uuid>/ — el front lo genera una vez por caso.
+  // Une la fila de patient_models con los GLB del bucket, así que es obligatorio.
+  const storagePrefix = fields.storage_prefix
+  const patientId = Number(fields.patientId)
+  if (!storagePrefix || !storagePrefix.endsWith('/')) {
+    res.status(400).json({ error: "campo 'storage_prefix' faltante o sin '/' final" })
+    return
+  }
+  if (!Number.isInteger(patientId)) {
+    res.status(400).json({ error: "campo 'patientId' faltante o inválido" })
+    return
+  }
+
   const results = []
-  for (const file of parsed) {
+  for (const file of files) {
     const originalName = file.filename || 'unnamed.stl'
     try {
       const glb = await convertStlToCompressedGlb(file.data)
-      const storedPath = path.parse(originalName).name + '.glb'
+      const storedPath = storagePrefix + path.parse(originalName).name + '.glb'
       await uploadToSupabase(storedPath, glb)
       results.push({ originalName, storedPath, size: glb.length })
     } catch (err) {
       results.push({ originalName, error: errorMessage(err) })
+    }
+  }
+
+  // Registrar el caso solo si al menos un GLB quedó escrito (evita filas huérfanas).
+  // Idempotente: on conflict (storage_prefix) do nothing.
+  if (results.some((r) => r.storedPath)) {
+    try {
+      await upsertPatientModel(patientId, storagePrefix)
+    } catch (err) {
+      res.status(500).json({ error: errorMessage(err), files: results })
+      return
     }
   }
 

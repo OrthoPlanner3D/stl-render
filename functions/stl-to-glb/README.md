@@ -2,8 +2,9 @@
 
 Recibe uno o varios `.stl` por `multipart/form-data`, los convierte a `.glb`
 comprimido con Draco (mismo formato que los assets de `src/assets/files-glb/`) y
-los sube a Supabase Storage. Devuelve los nombres almacenados para que el front
-los persista en la DB (V2).
+los sube a Supabase Storage **bajo el `storage_prefix` del caso** (`<patientId>/<uuid>/`).
+Tras subir, registra el caso en la tabla `op3dcloud.patient_models` (upsert idempotente
+por `storage_prefix`) para vincular los GLB al paciente.
 
 JavaScript plano (CommonJS), sin build step. La conversión usa un **parser STL
 propio** (`src/stl.js`, binario + ASCII) y **gltf-transform** para armar el GLB y
@@ -12,13 +13,21 @@ aplicar `KHR_draco_mesh_compression` (encoder `draco3dgltf`). No usa three.js.
 ```
 POST /  (multipart/form-data)
   header: x-api-key: <STL_API_KEY>
-  field:  files = uno o varios .stl
+  field:  files          = uno o varios .stl
+  field:  storage_prefix = "<patientId>/<uuid>/"   (obligatorio, termina en "/")
+  field:  patientId      = <bigint>                (obligatorio)
 → 200 { "files": [ { "originalName": "1Maxillary.stl",
-                     "storedPath": "1Maxillary.glb",
+                     "storedPath": "123/uuid/1Maxillary.glb",
                      "size": 8204 } ] }
   207 si hubo fallos parciales (cada item trae "error" en vez de storedPath/size)
-  401 x-api-key inválida · 405 método ≠ POST · 400 sin archivos
+  401 x-api-key inválida · 405 método ≠ POST
+  400 sin archivos / sin storage_prefix / patientId inválido
 ```
+
+El front (`stl-render`) genera un `storage_prefix` único por caso y manda **un
+archivo por request** (Cloud Run rechaza requests > ~32MB), todos con el mismo
+prefijo. El upsert a `patient_models` es idempotente, así que las N requests del
+caso crean **una sola fila**.
 
 ## Correr local
 
@@ -35,7 +44,9 @@ En otra terminal:
 ```bash
 curl -X POST http://localhost:8080 \
   -H "x-api-key: <STL_API_KEY del .env>" \
-  -F "files=@/ruta/a/1Maxillary.stl"
+  -F "files=@/ruta/a/1Maxillary.stl" \
+  -F "patientId=123" \
+  -F "storage_prefix=123/00000000-0000-0000-0000-000000000000/"
 ```
 
 ## Carga masiva (muchos .stl)
@@ -67,17 +78,23 @@ node -e "const fs=require('fs');const f=fs.readFileSync('out.glb');const l=f.rea
 # esperar: ['KHR_draco_mesh_compression'] y el primitive con su bloque KHR_draco_mesh_compression
 ```
 
-## Bucket de Storage
+## Bucket de Storage y tabla
 
-Crear un bucket **`glb-models`** **privado** (Dashboard → Storage → New bucket, sin
-marcar "Public bucket").
+Bucket **`patient-models`** **privado** (Dashboard → Storage → New bucket, sin
+marcar "Public bucket"). Los GLB se guardan bajo `<patientId>/<uuid>/`.
 
-**No requiere ninguna política de Storage.** La function se autentica con
-`SUPABASE_SERVICE_ROLE_KEY`, que saltea RLS por completo: tiene acceso total para
-subir/sobrescribir sin policies. Solo hace falta que el bucket exista.
+Tabla **`op3dcloud.patient_models`** (una fila por caso: `patient_id`, `storage_prefix`,
+`created_at`). Requiere un **UNIQUE constraint sobre `storage_prefix`** para que el
+upsert `on conflict do nothing` de la function sea idempotente:
 
-La lectura desde el front (cuando se integre) será con signed URLs o una policy
-`SELECT` para usuarios autenticados — eso es V2, fuera de esta function.
+```sql
+alter table op3dcloud.patient_models
+  add constraint patient_models_storage_prefix_key unique (storage_prefix);
+```
+
+**No requiere políticas de Storage/RLS.** La function se autentica con
+`SUPABASE_SERVICE_ROLE_KEY`, que saltea RLS por completo. El front lee los GLB con
+signed URLs generadas del lado cliente.
 
 ## Secrets (Secret Manager)
 
@@ -110,7 +127,7 @@ gcloud functions deploy stl-to-glb \
   --cpu=2 \
   --timeout=300s \
   --set-secrets=SUPABASE_URL=supabase-url:latest,SUPABASE_SERVICE_ROLE_KEY=supabase-service-key:latest,STL_API_KEY=stl-api-key:latest \
-  --set-env-vars=SUPABASE_BUCKET=glb-models
+  --set-env-vars=SUPABASE_BUCKET=patient-models,SUPABASE_SCHEMA=op3dcloud
 ```
 
 La región concreta se confirma al momento de deployar.
@@ -122,4 +139,5 @@ La región concreta se confirma al momento de deployar.
 | `STL_API_KEY` | Autenticar requests del front (header `x-api-key`) | secret |
 | `SUPABASE_URL` | URL del proyecto Supabase | secret |
 | `SUPABASE_SERVICE_ROLE_KEY` | Service role (backend, sin RLS) | secret |
-| `SUPABASE_BUCKET` | Bucket destino (default `glb-models`) | env var |
+| `SUPABASE_BUCKET` | Bucket destino (default `patient-models`) | env var |
+| `SUPABASE_SCHEMA` | Schema de `patient_models` (default `op3dcloud`) | env var |

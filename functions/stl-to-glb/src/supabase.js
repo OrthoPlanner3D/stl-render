@@ -8,7 +8,7 @@
 
 const { createClient } = require('@supabase/supabase-js')
 
-const { supabaseUrl, supabaseServiceKey, bucketName } = require('./config')
+const { supabaseUrl, supabaseServiceKey, bucketName, schemaName, TABLE } = require('./config')
 
 /** @type {import('@supabase/supabase-js').SupabaseClient | null} */
 let client = null
@@ -43,6 +43,32 @@ async function uploadToSupabase(path, data) {
 }
 
 /**
+ * Registra el caso 3D en la tabla patient_models (una fila por storage_prefix).
+ * Idempotente: como cada archivo del caso llega en su propia request, esta función
+ * corre una vez por archivo pero siempre con el mismo storage_prefix → on conflict
+ * do nothing. Requiere un UNIQUE constraint sobre storage_prefix en la tabla.
+ * @param {number} patientId
+ * @param {string} storagePrefix
+ * @returns {Promise<void>}
+ */
+async function upsertPatientModel(patientId, storagePrefix) {
+  const { error } = await getClient()
+    .schema(schemaName())
+    .from(TABLE)
+    .upsert(
+      { patient_id: patientId, storage_prefix: storagePrefix },
+      { onConflict: 'storage_prefix', ignoreDuplicates: true },
+    )
+  if (error) {
+    throw new Error(`Supabase upsert patient_models falló para "${storagePrefix}": ${error.message}`)
+  }
+}
+
+/**
+ * @deprecated El viewer ahora lista por storage_prefix con su propio cliente Supabase.
+ * Se mantiene solo para no romper el contrato del GET; lista la raíz del bucket, que
+ * bajo el layout por prefijo ya no tiene .glb sueltos.
+ *
  * Lista los .glb del bucket y devuelve signed URLs temporales para cada uno.
  * Firma del lado servidor con el service_role: el browser nunca ve la key.
  * @param {number} expiresIn segundos de validez de la URL firmada
@@ -68,4 +94,4 @@ async function listSignedGlbUrls(expiresIn) {
     .map((s) => ({ name: s.path, url: s.signedUrl }))
 }
 
-module.exports = { uploadToSupabase, listSignedGlbUrls }
+module.exports = { uploadToSupabase, upsertPatientModel, listSignedGlbUrls }

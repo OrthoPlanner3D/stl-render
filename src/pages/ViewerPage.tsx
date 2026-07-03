@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { LoaderCircle } from 'lucide-react'
 import { useBreakpoint } from '../hooks/useBreakpoint'
 import { useStlArches } from '../hooks/useStlArches'
@@ -9,7 +10,9 @@ import ViewPresets from '../components/ViewPresets'
 import PatientInfo from '../components/PatientInfo'
 
 export default function ViewerPage() {
-  const { loading, error, maxillary, mandibular } = useStlArches()
+  const [searchParams] = useSearchParams()
+  const storagePrefix = searchParams.get('prefix')
+  const { loading, error, maxillary, mandibular } = useStlArches(storagePrefix)
   const [index, setIndex] = useState(0)
   const [playing, setPlaying] = useState(false)
   const [showMax, setShowMax] = useState(true)
