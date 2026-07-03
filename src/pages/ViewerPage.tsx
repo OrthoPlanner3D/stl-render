@@ -1,6 +1,8 @@
 import { useState, useRef, useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { LoaderCircle } from 'lucide-react'
+import { LoaderCircle, AlertTriangle } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import ErrorBoundary from '../components/ErrorBoundary'
 import { useBreakpoint } from '../hooks/useBreakpoint'
 import { useStlArches } from '../hooks/useStlArches'
 import { usePatientName } from '../hooks/usePatientName'
@@ -15,7 +17,7 @@ import ViewerActions from '../components/ViewerActions'
 export default function ViewerPage() {
   const [searchParams] = useSearchParams()
   const storagePrefix = searchParams.get('prefix')
-  const { loading, error, maxillary, mandibular, prefix } = useStlArches(storagePrefix)
+  const { loading, error, maxillary, mandibular, prefix, reload } = useStlArches(storagePrefix)
   const patientName = usePatientName(prefix)
   const spacings = useCaseSpacings(prefix)
   const [index, setIndex] = useState(0)
@@ -63,14 +65,27 @@ export default function ViewerPage() {
     <div className="w-full h-screen bg-black font-sans overflow-hidden flex">
       {/* 70% — Visor 3D + controles */}
       <div className="flex-1 h-screen relative">
-        <StlViewer
-          maxUrl={maxillary.stls[index]}
-          manUrl={mandibular.stls[index]}
-          showMax={showMax}
-          showMan={showMan}
-          focusFnRef={focusFnRef}
-          viewFnRef={viewFnRef}
-        />
+        <ErrorBoundary
+          resetKeys={[prefix, index]}
+          fallback={({ reset }) => (
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-black px-6 text-center">
+              <AlertTriangle className="h-8 w-8 text-red-400" />
+              <p className="text-sm text-white/80">No se pudo cargar el modelo</p>
+              <Button variant="outline" size="sm" onClick={() => { reset(); reload() }}>
+                Reintentar
+              </Button>
+            </div>
+          )}
+        >
+          <StlViewer
+            maxUrl={maxillary.stls[index]}
+            manUrl={mandibular.stls[index]}
+            showMax={showMax}
+            showMan={showMan}
+            focusFnRef={focusFnRef}
+            viewFnRef={viewFnRef}
+          />
+        </ErrorBoundary>
         <PatientInfo isMobile={isMobile} name={patientName} />
         <ViewerActions prefix={prefix} isMobile={isMobile} />
         <ViewPresets onView={dir => viewFnRef.current(dir)} />
