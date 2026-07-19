@@ -14,7 +14,7 @@ export default function PatientInfo({ isMobile, name }: PatientInfoProps) {
       <img
         src="/assets/logo-white.png"
         alt="Logo"
-        className={cn('opacity-90 object-cover mx-auto', isMobile ? 'w-10' : 'w-20')}
+        className={cn('opacity-90 object-cover lg:mx-auto', isMobile ? 'w-10' : 'w-16')}
       />
       <div className="pl-0.5">
         <div className={cn(
