@@ -36,19 +36,19 @@ export default function ViewerActions({ prefix, isMobile }: ViewerActionsProps) 
       isMobile ? 'top-3 right-3' : 'top-6 right-6',
     )}>
       <Button variant="secondary" size="sm" onClick={() => navigate('/patients')}>
-        <ArrowLeft className="size-4 mr-1.5" />
-        Volver
+        <ArrowLeft className="size-4 lg:mr-1.5" />
+        <span className='hidden lg:inline'>Volver</span>
       </Button>
       <Button variant="secondary" size="sm" disabled={!prefix} onClick={handleShare}>
         {copied ? (
           <>
-            <Check className="size-4 mr-1.5 text-green-500" />
-            Copiado
+            <Check className="size-4 lg:mr-1.5 text-green-500" />
+            <span className='hidden lg:inline'>Copiado</span>
           </>
         ) : (
           <>
-            <Share2 className="size-4 mr-1.5" />
-            Compartir
+            <Share2 className="size-4 lg:mr-1.5" />
+            <span className='hidden lg:inline'>Compartir</span>
           </>
         )}
       </Button>
