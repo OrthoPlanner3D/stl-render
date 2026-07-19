@@ -237,8 +237,8 @@ export default function UploadPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col lg:flex-row items-center lg:items-stretch justify-center gap-4 bg-black px-4 pb-4 pt-20">
-      <Card className="w-full max-w-md flex flex-col max-h-[calc(100vh-6rem)]">
+    <div className="h-dvh overflow-y-auto flex flex-col lg:flex-row items-center lg:items-stretch justify-start lg:justify-center gap-4 bg-black px-4 pb-4 pt-20">
+      <Card className="w-full max-w-md shrink-0 flex flex-col max-h-[calc(100vh-6rem)]">
         <CardHeader className="shrink-0">
           <div className="flex items-center gap-2 mb-1">
             <Upload className="h-5 w-5 text-muted-foreground" />
@@ -381,16 +381,17 @@ export default function UploadPage() {
         </form>
       </Card>
 
-      {/* Editor de IPR (opcional) — al lado del form */}
-      <Card className="w-full max-w-md flex flex-col max-h-[calc(100vh-6rem)]">
+      {/* Editor de IPR — shrink-0 evita que el flex del page lo aplaste (Card tiene overflow-hidden).
+          Mobile: altura natural; desktop: llena el card con max-h. */}
+      <Card className="w-full max-w-md shrink-0 flex flex-col lg:h-full lg:max-h-[calc(100vh-6rem)]">
         <CardHeader className="shrink-0">
           <CardTitle>IPR</CardTitle>
           <CardDescription>
             Opcional — clickeá los puntos de contacto entre dientes para cargar la separación en mm
           </CardDescription>
         </CardHeader>
-        <CardContent className="flex-1 min-h-0 overflow-hidden">
-          <div className="h-full rounded-md border bg-[rgba(8,8,8,0.98)] overflow-hidden">
+        <CardContent className="lg:flex-1 lg:min-h-0 lg:overflow-hidden">
+          <div className="rounded-md border bg-[rgba(8,8,8,0.98)] lg:h-full lg:overflow-hidden">
             <DentalPanel
               ipr={ipr}
               onIprChange={next => { setIpr(next); setIprSaved(false) }}

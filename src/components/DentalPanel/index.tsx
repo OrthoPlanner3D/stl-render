@@ -41,19 +41,19 @@ export default function DentalPanel({ ipr, onIprChange }: DentalPanelProps) {
       ref={panelRef}
       className="dark relative flex h-full w-full flex-col justify-center px-5 py-6 pointer-events-auto"
     >
-      <div className="text-[9px] tracking-[0.14em] uppercase text-[#444] mb-1.5">
+      <div className="text-[9px] tracking-[0.14em] uppercase text-[#444] mb-1.5 shrink-0">
         Maxilar
       </div>
-      <svg viewBox="0 0 200 90" width="100%" className="block overflow-visible">
+      <svg viewBox="0 0 200 90" width="100%" className="block shrink-0 overflow-visible">
         <DentalArch archKey="max" cx={100} cy={5} flip={false} ipr={ipr} readOnly={readOnly} onContactClick={handleContactClick} />
       </svg>
 
-      <Separator className="my-4" />
+      <Separator className="my-4 shrink-0" />
 
-      <div className="text-[9px] tracking-[0.14em] uppercase text-[#444] mb-1.5">
+      <div className="text-[9px] tracking-[0.14em] uppercase text-[#444] mb-1.5 shrink-0">
         Mandibular
       </div>
-      <svg viewBox="0 0 200 90" width="100%" className="block overflow-visible">
+      <svg viewBox="0 0 200 90" width="100%" className="block shrink-0 overflow-visible">
         <DentalArch archKey="man" cx={100} cy={85} flip={true} ipr={ipr} readOnly={readOnly} onContactClick={handleContactClick} />
       </svg>
 
