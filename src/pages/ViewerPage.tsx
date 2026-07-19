@@ -87,7 +87,7 @@ export default function ViewerPage() {
       </ErrorBoundary>
       <PatientInfo isMobile={isMobile} name={patientName} />
       <ViewerActions prefix={prefix} isMobile={isMobile} />
-      <ViewPresets onView={dir => viewFnRef.current(dir)} />
+      <ViewPresets isMobile={isMobile} onView={dir => viewFnRef.current(dir)} />
       <BottomBar
         index={index}
         total={total}
