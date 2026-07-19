@@ -94,13 +94,13 @@ export default function PatientsPage() {
                   >
                     {copiedId === p.id ? (
                       <>
-                        <Check className="h-4 w-4 mr-1.5 text-green-500" />
-                        Copiado
+                        <Check className="h-4 w-4 md:mr-1.5 text-green-500" />
+                        <span className='hidden md:inline'>Copiado</span>
                       </>
                     ) : (
                       <>
-                        <Share2 className="h-4 w-4 mr-1.5" />
-                        Compartir
+                        <Share2 className="h-4 w-4 md:mr-1.5" />
+                        <span className='hidden md:inline'>Compartir</span>
                       </>
                     )}
                   </Button>
@@ -110,8 +110,8 @@ export default function PatientsPage() {
                     className="shrink-0"
                     onClick={() => handleOpen(p)}
                   >
-                    <Eye className="h-4 w-4 mr-1.5" />
-                    Ver render
+                    <Eye className="h-4 w-4 md:mr-1.5" />
+                    <span className='hidden md:inline'>Ver render</span>
                   </Button>
                 </li>
               ))}
