@@ -14,6 +14,10 @@ import BottomBar from '../components/BottomBar'
 import ViewPresets from '../components/ViewPresets'
 import PatientInfo from '../components/PatientInfo'
 import ViewerActions from '../components/ViewerActions'
+import TranslationWarningDialog, {
+  dismissTranslationWarningPermanently,
+  isTranslationWarningDismissed,
+} from '../components/TranslationWarningDialog'
 
 export default function ViewerPage() {
   const [searchParams] = useSearchParams()
@@ -25,6 +29,7 @@ export default function ViewerPage() {
   const [playing, setPlaying] = useState(false)
   const [showMax, setShowMax] = useState(true)
   const [showMan, setShowMan] = useState(true)
+  const [showTranslationWarning, setShowTranslationWarning] = useState(false)
   const { isMobile, isBelowLg } = useBreakpoint()
   const focusFnRef = useRef<() => void>(() => {})
   const viewFnRef = useRef<(dir: [number, number, number]) => void>(() => {})
@@ -45,6 +50,21 @@ export default function ViewerPage() {
     }, 200)
     return () => clearInterval(id)
   }, [playing, total])
+
+  useEffect(() => {
+    if (loading || error || !maxillary || !mandibular) return
+    if (isTranslationWarningDismissed()) return
+    setShowTranslationWarning(true)
+  }, [loading, error, maxillary, mandibular])
+
+  function handleDismissTranslationWarning() {
+    setShowTranslationWarning(false)
+  }
+
+  function handleDismissTranslationWarningPermanently() {
+    dismissTranslationWarningPermanently()
+    setShowTranslationWarning(false)
+  }
 
   if (loading) {
     return (
@@ -106,42 +126,62 @@ export default function ViewerPage() {
     </>
   )
 
+  const translationWarning = (
+    <TranslationWarningDialog
+      open={showTranslationWarning}
+      onDismiss={handleDismissTranslationWarning}
+      onDismissPermanently={handleDismissTranslationWarningPermanently}
+    />
+  )
+
   if (isBelowLg) {
     return (
-      <div className="dark w-full h-screen bg-black font-sans overflow-hidden">
-        <Tabs defaultValue="vista" className="flex h-full flex-col gap-0">
-          <div className="shrink-0 flex justify-center px-3 pt-3 pb-2">
-            <TabsList className="w-full max-w-sm">
-              <TabsTrigger value="vista">Vista</TabsTrigger>
-              <TabsTrigger value="ipr">IPR</TabsTrigger>
-            </TabsList>
-          </div>
-          <TabsContent
-            value="vista"
-            keepMounted
-            className="relative min-h-0 flex-1"
-          >
-            {viewer}
-          </TabsContent>
-          <TabsContent
-            value="ipr"
-            className="min-h-0 flex-1 bg-[rgba(8,8,8,0.98)]"
-          >
-            <DentalPanel ipr={ipr} />
-          </TabsContent>
-        </Tabs>
-      </div>
+      <>
+        <div
+          translate="no"
+          className="notranslate dark w-full h-screen bg-black font-sans overflow-hidden"
+        >
+          <Tabs defaultValue="vista" className="flex h-full flex-col gap-0">
+            <div className="shrink-0 flex justify-center px-3 pt-3 pb-2">
+              <TabsList className="w-full max-w-sm">
+                <TabsTrigger value="vista">Vista</TabsTrigger>
+                <TabsTrigger value="ipr">IPR</TabsTrigger>
+              </TabsList>
+            </div>
+            <TabsContent
+              value="vista"
+              keepMounted
+              className="relative min-h-0 flex-1"
+            >
+              {viewer}
+            </TabsContent>
+            <TabsContent
+              value="ipr"
+              className="min-h-0 flex-1 bg-[rgba(8,8,8,0.98)]"
+            >
+              <DentalPanel ipr={ipr} />
+            </TabsContent>
+          </Tabs>
+        </div>
+        {translationWarning}
+      </>
     )
   }
 
   return (
-    <div className="w-full h-screen bg-black font-sans overflow-hidden flex">
-      <div className="flex-1 h-screen relative">
-        {viewer}
+    <>
+      <div
+        translate="no"
+        className="notranslate w-full h-screen bg-black font-sans overflow-hidden flex"
+      >
+        <div className="flex-1 h-screen relative">
+          {viewer}
+        </div>
+        <div className="w-[30%] h-screen shrink-0 bg-[rgba(8,8,8,0.98)] border-l border-white/[0.06]">
+          <DentalPanel ipr={ipr} />
+        </div>
       </div>
-      <div className="w-[30%] h-screen shrink-0 bg-[rgba(8,8,8,0.98)] border-l border-white/[0.06]">
-        <DentalPanel ipr={ipr} />
-      </div>
-    </div>
+      {translationWarning}
+    </>
   )
 }
