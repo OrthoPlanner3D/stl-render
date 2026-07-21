@@ -9,6 +9,8 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 
+export const TRANSLATION_WARNING_GIF_SRC = '/assets/videos/no-translate.gif'
+
 export const TRANSLATION_WARNING_STORAGE_KEY = 'op3d-translation-warning-dismissed'
 
 export function isTranslationWarningDismissed(): boolean {
@@ -47,7 +49,7 @@ export default function TranslationWarningDialog({
     >
       <DialogContent
         showCloseButton={false}
-        className="dark border-white/10 bg-[rgba(8,8,8,0.98)] text-white sm:max-w-md"
+        className="dark gap-4 border-white/10 bg-[rgba(8,8,8,0.98)] text-white sm:max-w-lg"
       >
         <DialogHeader className="items-center text-center sm:items-start sm:text-left">
           <div className="mb-1 flex size-12 items-center justify-center rounded-full bg-amber-500/15 text-amber-400">
@@ -62,6 +64,13 @@ export default function TranslationWarningDialog({
             o use la plataforma en su idioma original para una experiencia correcta.
           </DialogDescription>
         </DialogHeader>
+        {open ? (
+          <img
+            src={TRANSLATION_WARNING_GIF_SRC}
+            alt="Cómo desactivar la traducción automática del navegador"
+            className="w-full overflow-hidden rounded-2xl border border-white/10 bg-black"
+          />
+        ) : null}
         <DialogFooter className="flex-col gap-2 sm:flex-col sm:items-stretch">
           <Button className="w-full" onClick={onDismiss}>
             Entendido
